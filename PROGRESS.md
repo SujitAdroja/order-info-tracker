@@ -201,9 +201,57 @@ key and restarting the server switches the LLM on with no code change.
 
 ### Still to do before Phase 3 is accepted
 
-- Live mail: set `INBOUND_DOMAIN` to your `<id>.resend.app` address, add an `email.received` webhook
-  pointing at a public URL (tunnel or deploy) + `/api/inbound/email`, and put its secret in `RESEND_WEBHOOK_SECRET`.
+- ~~Live mail~~ — working since 2026-11-25 via Resend receiving + a cloudflared tunnel (the tunnel URL
+  changes on restart; update the Resend webhook when it does).
 - Real store templates once sample emails arrive.
-- `TODO` notifications (EC-ING-10/14, LLM cap) land with Phase 5 push/email.
+- ~~Notifications (EC-ING-10/14, LLM cap)~~ — done in Phase 5.
 
-## Next: Phase 4 — Receipts & documents
+## Phase 4 — Receipts & documents ⏸ (on hold at the user's request, 2026-11-25)
+
+Not started. Build only when the user asks.
+
+## Phase 5 — Reminders & PWA ✅
+
+**Acceptance:** installable PWA; reminders by push with email fallback. Verified with unit tests (reminder
+rules across timezones/DST/quiet hours) and Playwright (`tests/e2e/reminders.spec.ts`): manifest + icons +
+service worker, reminders scheduled on save, email fallback, encrypted VAPID-signed push to every device
+(through a local fake push service), digest, expired-device cleanup, notification "Keeping it" button,
+reminder-hour change reschedules, offline banner + saved dashboard, logout clears the saved copy.
+**Still to check by hand on real devices:** Lighthouse installability on the deployed HTTPS URL, push on
+Android Chrome and on an installed iOS PWA (16.4+). These need HTTPS (deploy or tunnel).
+
+### Built
+
+| Item                                                                                                                                                                                | Where                                                                               |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| Reminder rules (Section 9): T-7/3/1/0, W-30/7 per item, review +1h/+2d, quiet hours 22–08, DST-safe                                                                                 | `lib/reminders/schedule.ts`                                                         |
+| Regeneration on every change (create, edit, status, delete, email merge, daily recompute, timezone/hour change)                                                                     | `lib/reminders/service.ts`, `lib/purchases/service.ts`                              |
+| Sender `/api/cron/reminders` (15 min): `FOR UPDATE SKIP LOCKED`, re-check status (EC-PUSH-06), quiet hours, digest (EC-PUSH-05), push → email fallback                              | `lib/reminders/send.ts`, `app/api/cron/reminders`                                   |
+| Web Push: VAPID, all devices (EC-PUSH-04), 404/410 → delete (EC-PUSH-03), 5 failures → delete                                                                                       | `lib/push/send.ts`                                                                  |
+| Email fallback + one-off notices (EC-ING-09/10/14, LLM cap)                                                                                                                         | `lib/email/send.ts`, `lib/notify.ts`                                                |
+| Service worker: push, "Returned"/"Keeping it" buttons, offline page rendered from saved JSON, update prompt (EC-PWA-02)                                                             | `public/sw.js`, `components/pwa/service-worker.tsx`, `app/api/notifications/action` |
+| Manifest, icons (192/512/maskable/apple/badge), iOS meta                                                                                                                            | `app/manifest.ts`, `scripts/generate-icons.mjs` (`npm run icons`)                   |
+| Settings: notifications (permission only on tap, iOS install guide EC-PUSH-01, blocked hint EC-PUSH-02, test button), reminder hour/timezone/email toggle, install card (EC-PWA-03) | `components/pwa/*`, `components/settings/*`                                         |
+| Offline: banner + data-changing buttons disabled (`useOffline`), `GET /api/purchases` cached by the worker                                                                          | `components/pwa/offline-*.tsx`, `app/api/purchases`                                 |
+| Local scheduler for development                                                                                                                                                     | `scripts/dev-cron.mjs` (`npm run cron:dev`)                                         |
+
+### Decisions (please review)
+
+- **Push requests go through `fetch`**; `web-push` only encrypts and signs (`generateRequestDetails`). Its
+  built-in sender is HTTPS-only and has no per-request timeout.
+- **The offline page is built by the service worker** from the saved `/api/purchases` JSON, with no app
+  JavaScript, so it works even for pages never opened before. App HTML is never cached (personal data).
+  The saved copy is deleted on logout and when the API answers 401.
+- **Reminder hours are limited to 08:00–21:00** in Settings, so a scheduled reminder never lands in quiet hours.
+  A reminder due during quiet hours waits until 08:00, unless the deadline passes first (then it's dropped).
+- A deadline ≤ 1 day away gets one reminder right away; the last-day (T-0) reminder still follows if it's tomorrow.
+- **`VAPID_SUBJECT` is a generic `mailto:`** (push services see it). Use your real support address when you have a domain.
+- `useOffline` (experimental in Next 16.4) is enabled for offline detection and automatic retry.
+
+### TODOs carried forward
+
+- **EC-ACC-06** "Regenerate forwarding address" (the rate-limit notice points to Settings) → with account editing.
+- Claim follow-up reminders → Phase 6 claims.
+- `TODO EC-SEC-04` rate limits → Phase 6.
+
+## Next: Phase 6 — Claims, export, delete, polish

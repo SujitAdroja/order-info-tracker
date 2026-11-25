@@ -1,5 +1,6 @@
 import path from "node:path";
 import { defineConfig, devices } from "@playwright/test";
+import webpush from "web-push";
 
 const PORT = 3100;
 const baseURL = `http://localhost:${PORT}`;
@@ -20,6 +21,9 @@ export const E2E_SECRETS = {
   // Only the local mock below ever sees this key.
   RESEND_API_KEY: "re_e2e_mock",
 };
+
+/** Throwaway VAPID keys for the test server (pushes only reach the local mock). */
+const vapid = webpush.generateVAPIDKeys();
 
 export const MOCK_RESEND_URL = "http://localhost:3199";
 
@@ -57,6 +61,9 @@ export default defineConfig({
         E2E_MAGIC_LINK_DIR: MAGIC_LINK_DIR,
         ...E2E_SECRETS,
         RESEND_API_BASE_URL: MOCK_RESEND_URL,
+        VAPID_PUBLIC_KEY: vapid.publicKey,
+        VAPID_PRIVATE_KEY: vapid.privateKey,
+        VAPID_SUBJECT: "mailto:e2e@example.test",
         // Force plan B (no LLM) so tests are deterministic and never spend money.
         ANTHROPIC_API_KEY: "",
       },

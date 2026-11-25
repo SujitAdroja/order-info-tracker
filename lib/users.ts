@@ -61,13 +61,19 @@ export const timezoneSchema = z
   }, "Unknown IANA timezone");
 
 /**
- * Records the browser-detected timezone the first time we see it.
- * Later changes go through Settings (EC-DATE-08 recompute lands in Phase 5).
+ * Records the browser-detected timezone the first time we see it. Returns
+ * true if it was stored (the caller reschedules reminders, EC-DATE-08).
+ * Later changes go through Settings.
  */
-export async function setDetectedTimezone(userId: string, tz: string) {
+export async function setDetectedTimezone(
+  userId: string,
+  tz: string,
+): Promise<boolean> {
   const timezone = timezoneSchema.parse(tz);
-  await getDb()
+  const rows = await getDb()
     .update(users)
     .set({ timezone, timezoneDetected: true })
-    .where(and(eq(users.id, userId), eq(users.timezoneDetected, false)));
+    .where(and(eq(users.id, userId), eq(users.timezoneDetected, false)))
+    .returning({ id: users.id });
+  return rows.length > 0;
 }

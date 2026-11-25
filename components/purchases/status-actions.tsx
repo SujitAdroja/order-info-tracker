@@ -1,5 +1,5 @@
 import { setPurchaseStatusAction } from "@/app/actions/purchases";
-import { Button } from "@/components/ui/button";
+import { OnlineButton } from "@/components/pwa/online-button";
 import type { PurchaseStatus, StatusAction } from "@/lib/purchases/status";
 
 /** F7 lifecycle buttons. Plain forms, so they work before hydration too. */
@@ -27,9 +27,9 @@ export function StatusActions({
           key={action}
           action={setPurchaseStatusAction.bind(null, purchaseId, action)}
         >
-          <Button type="submit" variant={primary ? "default" : "outline"}>
+          <OnlineButton type="submit" variant={primary ? "default" : "outline"}>
             {label}
-          </Button>
+          </OnlineButton>
         </form>
       ))}
     </div>

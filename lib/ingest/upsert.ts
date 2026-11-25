@@ -10,7 +10,8 @@ import {
   type ReviewReason,
 } from "@/lib/ingest/merge";
 import type { ParsedOrder } from "@/lib/ingest/types";
-import { recomputePurchase, type Tx } from "@/lib/purchases/service";
+import type { Tx } from "@/lib/db";
+import { recomputePurchase } from "@/lib/purchases/service";
 
 export type StoreRef = { id: string; name: string } | null;
 
@@ -183,7 +184,7 @@ export async function applyOrder(
             ),
           );
       }
-      // TODO EC-PUSH-06: cancel unsent return reminders on cancel/return (Phase 5).
+      // EC-PUSH-06: recomputePurchase below regenerates reminders for the new status.
     }
 
     const result = await recomputePurchase(tx, purchaseId, args.timeZone, {

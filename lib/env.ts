@@ -75,7 +75,15 @@ export const envSchema = z
     // Push (Phase 5)
     VAPID_PUBLIC_KEY: optionalString,
     VAPID_PRIVATE_KEY: optionalString,
-    VAPID_SUBJECT: optionalString,
+    VAPID_SUBJECT: optionalString.pipe(
+      z
+        .string()
+        .regex(
+          /^(mailto:|https:\/\/)/,
+          "VAPID_SUBJECT must be a mailto: or https:// URL",
+        )
+        .optional(),
+    ),
 
     // Cron + errors
     CRON_SECRET: optionalString,
@@ -105,7 +113,13 @@ export const envSchema = z
             "Inbound email needs RESEND_WEBHOOK_SECRET (Resend) or INBOUND_WEBHOOK_USER/PASSWORD (Postmark) in production",
         });
       }
-      for (const key of ["DATA_ENCRYPTION_KEY", "CRON_SECRET"] as const) {
+      for (const key of [
+        "DATA_ENCRYPTION_KEY",
+        "CRON_SECRET",
+        "VAPID_PUBLIC_KEY",
+        "VAPID_PRIVATE_KEY",
+        "VAPID_SUBJECT",
+      ] as const) {
         if (!env[key]) {
           ctx.addIssue({
             code: "custom",

@@ -1,6 +1,6 @@
 import "server-only";
 import { and, desc, eq, isNull, notInArray, or, sql } from "drizzle-orm";
-import { getDb, type Db } from "@/lib/db";
+import { getDb, type Db, type Tx } from "@/lib/db";
 import { purchaseItems, purchases, stores } from "@/lib/db/schema";
 import { maxISO, todayInTimeZone, type ISODate } from "@/lib/dates";
 import {
@@ -20,9 +20,8 @@ import {
   type StatusAction,
 } from "@/lib/purchases/status";
 import type { StorePolicyInfo } from "@/lib/purchases/policy-hint";
+import { regenerateReminders } from "@/lib/reminders/service";
 import type { CurrentUser } from "@/lib/session";
-
-export type Tx = Parameters<Parameters<Db["transaction"]>[0]>[0];
 
 export type StoreWithPolicies = typeof stores.$inferSelect & {
   categoryPolicies: {
@@ -240,6 +239,7 @@ export async function createManualPurchase(
         .values(
           input.items.map((item, i) => itemValues(row.id, item, result, i)),
         );
+      await regenerateReminders(tx, row.id);
       return row.id;
     });
     return { ok: true, id };
@@ -339,6 +339,7 @@ export async function updatePurchase(
           await tx.insert(purchaseItems).values(values);
         }
       }
+      await regenerateReminders(tx, existing.id);
       return { ok: true as const, id: existing.id };
     });
   } catch (error) {
@@ -472,7 +473,8 @@ export async function setPurchaseStatus(
       .update(purchases)
       .set({ status, ...purchaseColumnsFrom(result, existing.reviewReasons) })
       .where(eq(purchases.id, existing.id));
-    // TODO EC-PUSH-06: cancel unsent return reminders here once reminders exist (Phase 5).
+    // EC-PUSH-06: returned/kept/cancelled drops the reminders that no longer apply.
+    await regenerateReminders(tx, existing.id);
     return true;
   });
 }
@@ -493,6 +495,7 @@ export async function softDeletePurchase(
       ),
     )
     .returning({ id: purchases.id });
+  if (rows.length) await regenerateReminders(getDb(), purchaseId);
   return rows.length > 0;
 }
 
@@ -553,6 +556,7 @@ export async function recomputePurchase(
     .update(purchases)
     .set({ status, ...purchaseColumnsFrom(result, keep) })
     .where(eq(purchases.id, p.id));
+  await regenerateReminders(db, p.id);
   return result;
 }
 

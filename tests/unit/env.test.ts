@@ -59,8 +59,17 @@ describe("parseEnv", () => {
       INBOUND_WEBHOOK_PASSWORD: "secret",
       DATA_ENCRYPTION_KEY: Buffer.alloc(32, 1).toString("base64"),
       CRON_SECRET: "cron",
+      VAPID_PUBLIC_KEY: "pub",
+      VAPID_PRIVATE_KEY: "priv",
+      VAPID_SUBJECT: "mailto:support@example.com",
     };
     expect(() => parseEnv(prod)).not.toThrow();
+    expect(() => parseEnv({ ...prod, VAPID_PRIVATE_KEY: "" })).toThrow(
+      /VAPID_PRIVATE_KEY/,
+    );
+    expect(() =>
+      parseEnv({ ...prod, VAPID_SUBJECT: "support@example.com" }),
+    ).toThrow(/VAPID_SUBJECT/);
     expect(() => parseEnv({ ...prod, E2E_MAGIC_LINK_DIR: "/tmp/x" })).toThrow(
       /E2E_MAGIC_LINK_DIR/,
     );
@@ -79,6 +88,9 @@ describe("parseEnv", () => {
       RESEND_API_KEY: "re_x",
       DATA_ENCRYPTION_KEY: Buffer.alloc(32, 1).toString("base64"),
       CRON_SECRET: "cron",
+      VAPID_PUBLIC_KEY: "pub",
+      VAPID_PRIVATE_KEY: "priv",
+      VAPID_SUBJECT: "mailto:support@example.com",
     };
     expect(() => parseEnv(prod)).toThrow(/RESEND_WEBHOOK_SECRET/);
     expect(() =>

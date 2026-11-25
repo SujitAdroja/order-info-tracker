@@ -13,6 +13,7 @@ export type CurrentUser = {
   timezoneDetected: boolean;
   defaultCurrency: string;
   reminderHour: number;
+  emailRemindersEnabled: boolean;
 };
 
 /**
@@ -20,9 +21,16 @@ export type CurrentUser = {
  * returned here (EC-SEC-03). Redirects to /login when there is no session.
  */
 export async function getCurrentUser(): Promise<CurrentUser> {
+  const user = await getCurrentUserOrNull();
+  if (!user) redirect("/login");
+  return user;
+}
+
+/** Same as getCurrentUser, for route handlers that answer 401 instead of redirecting. */
+export async function getCurrentUserOrNull(): Promise<CurrentUser | null> {
   const session = await auth();
   const userId = session?.user?.id;
-  if (!userId) redirect("/login");
+  if (!userId) return null;
 
   const user = await getDb().query.users.findFirst({
     columns: {
@@ -33,11 +41,12 @@ export async function getCurrentUser(): Promise<CurrentUser> {
       timezoneDetected: true,
       defaultCurrency: true,
       reminderHour: true,
+      emailRemindersEnabled: true,
       deletedAt: true,
     },
     where: eq(users.id, userId),
   });
-  if (!user || user.deletedAt) redirect("/login");
+  if (!user || user.deletedAt) return null;
 
   return {
     id: user.id,
@@ -47,5 +56,6 @@ export async function getCurrentUser(): Promise<CurrentUser> {
     timezoneDetected: user.timezoneDetected,
     defaultCurrency: user.defaultCurrency,
     reminderHour: user.reminderHour,
+    emailRemindersEnabled: user.emailRemindersEnabled,
   };
 }

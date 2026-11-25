@@ -3,6 +3,7 @@
 import { Trash2Icon } from "lucide-react";
 import { useTransition } from "react";
 import { deletePurchaseAction } from "@/app/actions/purchases";
+import { OnlineButton } from "@/components/pwa/online-button";
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -41,7 +42,7 @@ export function DeletePurchaseButton({ purchaseId }: { purchaseId: string }) {
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Keep it</AlertDialogCancel>
-          <Button
+          <OnlineButton
             variant="destructive"
             disabled={pending}
             onClick={() =>
@@ -49,7 +50,7 @@ export function DeletePurchaseButton({ purchaseId }: { purchaseId: string }) {
             }
           >
             {pending ? "Deleting…" : "Delete purchase"}
-          </Button>
+          </OnlineButton>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

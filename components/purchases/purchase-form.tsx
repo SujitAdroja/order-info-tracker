@@ -7,6 +7,7 @@ import {
   updatePurchaseAction,
   type SavePurchaseResult,
 } from "@/app/actions/purchases";
+import { OnlineButton } from "@/components/pwa/online-button";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -269,9 +270,9 @@ export function PurchaseForm({
       </fieldset>
 
       <div className="flex gap-3">
-        <Button type="submit" size="lg" disabled={pending}>
+        <OnlineButton type="submit" size="lg" disabled={pending}>
           {pending ? "Saving…" : submitLabel}
-        </Button>
+        </OnlineButton>
       </div>
     </form>
   );

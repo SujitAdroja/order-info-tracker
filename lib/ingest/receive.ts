@@ -4,6 +4,7 @@ import { getDb } from "@/lib/db";
 import { forwardingAddresses, inboundEmails, users } from "@/lib/db/schema";
 import { encrypt, safeEqual, sha256Hex } from "@/lib/crypto";
 import { env } from "@/lib/env";
+import { notifyUser } from "@/lib/notify";
 import { parseAddress } from "@/lib/ingest/parse-utils";
 import {
   ourLocalParts,
@@ -162,7 +163,16 @@ export async function receiveInbound(
       ),
     );
   if (recent >= RATE_LIMIT_PER_HOUR) {
-    // TODO EC-ING-14 (Phase 5): notify the user to regenerate their address.
+    // Tell the user once, when the limit is first reached in this hour.
+    if (recent === RATE_LIMIT_PER_HOUR) {
+      await notifyUser(owner.id, {
+        title: "Too many emails to your forwarding address",
+        body: `We received over ${RATE_LIMIT_PER_HOUR} emails in an hour, so we paused processing. If you didn't send them, your address may have leaked — you can change it in Settings.`,
+        url: "/settings",
+        tag: "rate-limit",
+      });
+      // TODO EC-ACC-06: "regenerate address" lands with the Settings edit work.
+    }
     return ignore("rate_limited", owner.id);
   }
 

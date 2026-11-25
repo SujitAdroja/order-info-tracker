@@ -8,6 +8,7 @@ import {
   ForwardingAddressSkeleton,
 } from "@/components/forwarding-address-card";
 import { GmailCode } from "@/components/onboarding/gmail-code";
+import { InstallPrompt } from "@/components/pwa/install-prompt";
 import { buttonVariants } from "@/components/ui/button";
 import { getDb } from "@/lib/db";
 import { users } from "@/lib/db/schema";
@@ -98,6 +99,20 @@ export default function OnboardingPage() {
         >
           Add a purchase
         </Link>
+      </section>
+
+      <section aria-labelledby="reminders" className="grid gap-3">
+        <h2 id="reminders" className="font-medium">
+          4. Get reminders on your phone
+        </h2>
+        <InstallPrompt />
+        <p className="text-sm text-muted-foreground">
+          Then turn on notifications in{" "}
+          <Link href="/settings" className="underline underline-offset-4">
+            Settings
+          </Link>
+          . Until you do, we email your reminders.
+        </p>
       </section>
     </div>
   );

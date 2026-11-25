@@ -1,10 +1,11 @@
-// Local stand-in for Resend's Receiving API during e2e runs. Tests register
+// Local stand-ins for Resend's Receiving API and a Web Push service during e2e runs. Tests register
 // a received email with POST /__fixtures/emails/<id>; the app then fetches it
 // exactly as it would from api.resend.com. SYNTHETIC data only.
 import http from "node:http";
 
 const PORT = Number(process.env.MOCK_RESEND_PORT ?? 3199);
 const emails = new Map();
+const pushes = new Map(); // push endpoint id → deliveries
 
 function send(res, status, body) {
   res.writeHead(status, { "content-type": "application/json" });
@@ -25,6 +26,32 @@ http
       return;
     }
     if (url.pathname === "/") return send(res, 200, { ok: true });
+
+    // Fake Web Push service: endpoints /push/<id>. Ids starting with "gone-"
+    // answer 410 like an expired subscription (EC-PUSH-03).
+    const push = url.pathname.match(/^\/push\/([^/]+)$/);
+    if (req.method === "POST" && push) {
+      let bytes = 0;
+      req.on("data", (c) => (bytes += c.length));
+      req.on("end", () => {
+        const id = push[1];
+        if (id.startsWith("gone-")) return send(res, 410, { message: "Gone" });
+        const list = pushes.get(id) ?? [];
+        list.push({
+          bytes,
+          encoding: req.headers["content-encoding"] ?? null,
+          vapid: String(req.headers.authorization ?? "").startsWith("vapid "),
+          ttl: req.headers.ttl ?? null,
+        });
+        pushes.set(id, list);
+        res.writeHead(201);
+        res.end();
+      });
+      return;
+    }
+    const pushLog = url.pathname.match(/^\/__push\/([^/]+)$/);
+    if (req.method === "GET" && pushLog)
+      return send(res, 200, pushes.get(pushLog[1]) ?? []);
 
     if (!req.headers.authorization?.startsWith("Bearer ")) {
       return send(res, 401, { message: "Missing API key" });

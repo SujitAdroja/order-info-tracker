@@ -5,6 +5,7 @@ import { env } from "@/lib/env";
 import * as schema from "./schema";
 
 export type Db = PostgresJsDatabase<typeof schema>;
+export type Tx = Parameters<Parameters<Db["transaction"]>[0]>[0];
 
 // Reuse one pool across dev hot reloads.
 const globalForDb = globalThis as unknown as { __keeptrackDb?: Db };

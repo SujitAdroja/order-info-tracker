@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { confirmPurchaseAction } from "@/app/actions/purchases";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { OnlineButton } from "@/components/pwa/online-button";
+import { buttonVariants } from "@/components/ui/button";
 import { REVIEW_REASON_LABELS, type ReviewReason } from "@/lib/ingest/merge";
 
 /**
@@ -54,9 +55,9 @@ export function ReviewCallout({
         </Link>
         {fromEmail ? (
           <form action={confirmPurchaseAction.bind(null, purchaseId)}>
-            <Button type="submit" size="sm" variant="outline">
+            <OnlineButton type="submit" size="sm" variant="outline">
               Looks right
-            </Button>
+            </OnlineButton>
           </form>
         ) : null}
       </div>

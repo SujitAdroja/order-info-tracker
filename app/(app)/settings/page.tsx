@@ -1,13 +1,17 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
-import { signOutAction } from "@/app/actions/auth";
 import {
   ForwardingAddressCard,
   ForwardingAddressSkeleton,
 } from "@/components/forwarding-address-card";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { InstallPrompt } from "@/components/pwa/install-prompt";
+import { PushSettings } from "@/components/pwa/push-settings";
+import { LogoutButton } from "@/components/settings/logout-button";
+import { ReminderSettingsForm } from "@/components/settings/reminder-settings-form";
+import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { env } from "@/lib/env";
 import { getCurrentUser } from "@/lib/session";
 import { ensureForwardingAddress } from "@/lib/users";
 
@@ -57,9 +61,40 @@ async function SettingsContent() {
             <dd data-testid="account-timezone">{user.timezone}</dd>
             <dt className="text-muted-foreground">Currency</dt>
             <dd>{user.defaultCurrency}</dd>
-            <dt className="text-muted-foreground">Reminders sent at</dt>
-            <dd>{String(user.reminderHour).padStart(2, "0")}:00 local time</dd>
           </dl>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Notifications</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <PushSettings vapidPublicKey={env().VAPID_PUBLIC_KEY ?? null} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Reminders</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ReminderSettingsForm
+            initial={{
+              reminderHour: user.reminderHour,
+              timezone: user.timezone,
+              emailRemindersEnabled: user.emailRemindersEnabled,
+            }}
+          />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Install the app</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <InstallPrompt />
         </CardContent>
       </Card>
 
@@ -107,11 +142,7 @@ async function SettingsContent() {
         </Card>
       )}
 
-      <form action={signOutAction}>
-        <Button type="submit" variant="outline">
-          Log out
-        </Button>
-      </form>
+      <LogoutButton />
     </>
   );
 }

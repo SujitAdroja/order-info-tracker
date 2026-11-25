@@ -37,6 +37,7 @@ import { findTemplate, templateComplete } from "@/lib/ingest/templates";
 import type { ParsedOrder, ParseSource, RawEmail } from "@/lib/ingest/types";
 import { unwrapForward } from "@/lib/ingest/unwrap";
 import { applyOrder } from "@/lib/ingest/upsert";
+import { notifyUser } from "@/lib/notify";
 
 /**
  * Section 6.2 processing for one inbound email. Safe to call more than once:
@@ -147,6 +148,36 @@ function sanitizeOrder(order: ParsedOrder, today: ISODate): ParsedOrder {
     out.delivery_date = null;
   }
   return out;
+}
+
+function notifyNotAnOrder(userId: string) {
+  return notifyUser(userId, {
+    title: "This didn't look like an order",
+    body: "We couldn't find an order in the email you forwarded. You can add the purchase by hand.",
+    url: "/add",
+    tag: "not-an-order",
+  });
+}
+
+/** Section 6.3 cost guard: tell the user once per day that the limit was hit. */
+async function notifyLlmCapOnce(userId: string) {
+  const [{ n }] = await getDb()
+    .select({ n: sql<number>`count(*)`.mapWith(Number) })
+    .from(inboundEmails)
+    .where(
+      and(
+        eq(inboundEmails.userId, userId),
+        eq(inboundEmails.errorCode, "llm_cap_reached"),
+        gte(inboundEmails.processedAt, sql`date_trunc('day', now())`),
+      ),
+    );
+  if (n > 0) return;
+  await notifyUser(userId, {
+    title: "Automatic reading paused for today",
+    body: "You forwarded a lot of emails today. New ones are saved as drafts for you to check; automatic reading resumes tomorrow.",
+    url: "/dashboard?tab=review",
+    tag: "llm-cap",
+  });
 }
 
 export async function processInboundEmail(
@@ -285,6 +316,7 @@ export async function processInboundEmail(
     }
     body = capText(body + pdfText);
     const imageOnly = !pdfText && looksImageOnly(raw.html, original.body);
+    const forwardedByHand = original.wasForwarded && !isAutoForwarded(raw);
 
     // Step 4: store.
     const storeRows = await db.query.stores.findMany({
@@ -334,7 +366,7 @@ export async function processInboundEmail(
         extraReasons.push("llm_unavailable");
       } else if (!(await reserveLlmParse(id, user.id))) {
         extraReasons.push("llm_cap_reached");
-        // TODO Phase 5: notify the user that today's automatic reading limit was hit.
+        await notifyLlmCapOnce(user.id);
       } else {
         const result = await llmExtract(
           {
@@ -360,7 +392,8 @@ export async function processInboundEmail(
       source === "llm" &&
       orders.every((o) => o.email_type === "other" && !o.items.length)
     ) {
-      // EC-ING-10. TODO Phase 5: tell the user "This didn't look like an order".
+      // EC-ING-10: only a manual forward gets a notice.
+      if (forwardedByHand) await notifyNotAnOrder(user.id);
       await finish(id, {
         status: "ignored",
         emailType: "other",
@@ -372,6 +405,7 @@ export async function processInboundEmail(
 
     if (source === "generic") {
       if (emailType === "other" && !imageOnly) {
+        if (forwardedByHand) await notifyNotAnOrder(user.id); // EC-ING-10
         await finish(id, {
           status: "ignored",
           emailType,
@@ -437,10 +471,25 @@ export async function processInboundEmail(
       firstPurchaseId ??= result.purchaseId;
     }
 
+    // EC-ING-09: an image-only email became a draft we couldn't fill in.
+    if (imageOnly && anyApplied && firstPurchaseId) {
+      await notifyUser(user.id, {
+        title: "We couldn't read this email",
+        body: "It's mostly images. Please add the details by hand.",
+        url: `/purchases/${firstPurchaseId}/edit`,
+        tag: `unreadable-${firstPurchaseId}`,
+      });
+    }
+
     await finish(id, {
       status: !anyApplied ? "ignored" : anyReview ? "needs_review" : "parsed",
       emailType: orders[0]?.email_type ?? emailType,
-      errorCode: anyApplied ? null : lastIgnoreReason,
+      // Recorded so the daily-limit notice goes out once per day.
+      errorCode: anyApplied
+        ? extraReasons.includes("llm_cap_reached")
+          ? "llm_cap_reached"
+          : null
+        : lastIgnoreReason,
       purchaseId: firstPurchaseId,
       fromDomain: original.fromDomain,
     });

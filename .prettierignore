@@ -1,0 +1,9 @@
+.next
+node_modules
+drizzle
+playwright-report
+test-results
+components/ui
+package-lock.json
+IMPLEMENTATION_PLAN.md
+.next-e2e

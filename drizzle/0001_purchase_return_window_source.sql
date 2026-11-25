@@ -1,0 +1,3 @@
+ALTER TABLE "purchases" ADD COLUMN "return_window_source" text;--> statement-breakpoint
+ALTER TABLE "purchase_items" ADD CONSTRAINT "purchase_items_category_check" CHECK (category is null or category in ('electronics', 'appliance', 'fashion', 'home', 'beauty', 'grocery', 'digital', 'other'));--> statement-breakpoint
+ALTER TABLE "purchases" ADD CONSTRAINT "purchases_return_window_source_check" CHECK (return_window_source is null or return_window_source in ('user', 'email', 'category', 'store'));

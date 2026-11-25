@@ -1,0 +1,21 @@
+# Local development database only. Production uses Supabase or Neon.
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: keeptrack-postgres
+    environment:
+      POSTGRES_USER: keeptrack
+      POSTGRES_PASSWORD: keeptrack
+      POSTGRES_DB: keeptrack
+    ports:
+      - "5434:5432"
+    volumes:
+      - keeptrack-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U keeptrack"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  keeptrack-pgdata:

@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Suspense } from "react";
+import { buttonVariants } from "@/components/ui/button";
 import { AuthCard } from "@/components/auth/auth-card";
 import { EmailSignInForm } from "@/components/auth/email-sign-in-form";
 
@@ -8,8 +10,8 @@ export const metadata: Metadata = { title: "Sign-in problem" };
 // Auth.js error codes → plain language. EC-ACC-01: expired/used magic link.
 const MESSAGES: Record<string, { title: string; body: string }> = {
   Verification: {
-    title: "That link has expired",
-    body: "Sign-in links work once and expire after 24 hours. Enter your email and we'll send a fresh one.",
+    title: "That code or link didn't work",
+    body: "Sign-in codes and links work once and expire after 15 minutes. Check the code and try again, or enter your email for a new one.",
   },
   AccessDenied: {
     title: "Sign-in was cancelled",
@@ -45,7 +47,15 @@ async function AuthErrorContent({
 
   return (
     <AuthCard title={message.title} description={message.body}>
-      <EmailSignInForm submitLabel="Send new link" />
+      {error === "Verification" ? (
+        <Link
+          href="/login/check-email"
+          className={buttonVariants({ variant: "outline" })}
+        >
+          Try the code again
+        </Link>
+      ) : null}
+      <EmailSignInForm submitLabel="Send new code" />
     </AuthCard>
   );
 }

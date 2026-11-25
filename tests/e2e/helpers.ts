@@ -27,6 +27,21 @@ export async function readMagicLink(email: string): Promise<string> {
   return link;
 }
 
+/** The sign-in code sent with the latest link for this email (dev/test sink). */
+export async function readSignInCode(email: string): Promise<string> {
+  const file = path.join(
+    MAGIC_LINK_DIR,
+    `${createHash("sha256").update(email.toLowerCase()).digest("hex")}.code`,
+  );
+  let code = "";
+  await expect
+    .poll(async () => (code = await readFile(file, "utf8").catch(() => "")), {
+      timeout: 15_000,
+    })
+    .not.toBe("");
+  return code.trim();
+}
+
 export async function requestMagicLink(
   page: Page,
   email: string,

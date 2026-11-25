@@ -1,5 +1,10 @@
 import { expect, test } from "@playwright/test";
-import { ADDRESS_PATTERN, requestMagicLink, uniqueEmail } from "./helpers";
+import {
+  ADDRESS_PATTERN,
+  readSignInCode,
+  requestMagicLink,
+  uniqueEmail,
+} from "./helpers";
 
 test("app pages redirect to login when signed out", async ({ page }) => {
   await page.goto("/settings");
@@ -48,6 +53,11 @@ test.describe("sign up and log in", () => {
       .toBe("Europe/Berlin");
 
     // Log out, then log back in: same address, not a new one.
+    // (Wait for hydration first: the push card leaves "checking".)
+    await expect(page.getByTestId("push-settings")).not.toHaveAttribute(
+      "data-status",
+      "checking",
+    );
     await page.getByRole("button", { name: "Log out" }).click();
     await expect(page).toHaveURL(/\/$/);
     await page.goto("/settings");
@@ -75,10 +85,39 @@ test.describe("sign up and log in", () => {
     await context.clearCookies();
     await page.goto(link); // second use
     await expect(
-      page.getByRole("heading", { name: "That link has expired" }),
+      page.getByRole("heading", { name: "That code or link didn't work" }),
     ).toBeVisible();
     await expect(
-      page.getByRole("button", { name: "Send new link" }),
+      page.getByRole("button", { name: "Send new code" }),
     ).toBeVisible();
   });
+});
+
+test("sign in by typing the emailed code (works in the installed app)", async ({
+  page,
+}) => {
+  const email = uniqueEmail();
+  await requestMagicLink(page, email, "/settings");
+  const code = await readSignInCode(email);
+  expect(code).toMatch(/^[A-HJKMNP-Z2-9]{8}$/);
+
+  // The check-email page names the address and takes the code.
+  await page.goto("/login/check-email");
+  await expect(page.getByText(email)).toBeVisible();
+
+  // A wrong code doesn't use up the real one: retry works.
+  await page.getByLabel("Sign-in code").fill("ZZZZ-ZZZZ");
+  await page.getByRole("button", { name: "Sign in" }).click();
+  await expect(
+    page.getByRole("heading", { name: "That code or link didn't work" }),
+  ).toBeVisible();
+  await page.getByRole("link", { name: "Try the code again" }).click();
+
+  // Lower-case with a dash, as people type it.
+  await page
+    .getByLabel("Sign-in code")
+    .fill(`${code.slice(0, 4)}-${code.slice(4)}`.toLowerCase());
+  await page.getByRole("button", { name: "Sign in" }).click();
+  await expect(page).toHaveURL(/\/settings$/);
+  await expect(page.getByTestId("account-email")).toHaveText(email);
 });

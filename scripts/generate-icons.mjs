@@ -31,6 +31,9 @@ const jobs = [
   // Maskable: full-bleed background, art inside the 80% safe zone.
   ["public/icons/maskable-512.png", 512, { pad: 0.26, radius: 0 }],
   ["public/icons/apple-touch-icon.png", 180, { radius: 0 }],
+  // iOS also probes the site root for these names.
+  ["public/apple-touch-icon.png", 180, { radius: 0 }],
+  ["public/apple-touch-icon-precomposed.png", 180, { radius: 0 }],
   // Android status-bar badge: drawn as a white silhouette, so transparent bg.
   ["public/icons/badge-96.png", 96, { pad: 0.08, badge: true }],
 ];

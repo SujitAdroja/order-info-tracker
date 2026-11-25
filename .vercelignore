@@ -1,0 +1,10 @@
+# Vercel builds from source; never upload local builds, tests output or secrets.
+.next
+.next-e2e
+node_modules
+test-results
+playwright-report
+blob-report
+.env
+.env.*
+!.env.example

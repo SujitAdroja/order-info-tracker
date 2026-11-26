@@ -576,58 +576,69 @@ Use Server Actions for form mutations if preferred; keep the same validation lay
 
 ## 12. Build phases with acceptance criteria
 
-### Phase 1 — Foundation (days 1–3)
-- [ ] Next.js + TS + Tailwind + shadcn setup, ESLint, Prettier, Vitest, Playwright
-- [ ] Drizzle schema + migrations for all tables in Section 5
-- [ ] Auth.js: magic link + Google (no extra scopes)
-- [ ] On first login: create forwarding address, detect timezone
-- [ ] Basic layout, responsive mobile-first nav
-- [ ] Env validation with zod (`lib/env.ts`)
-**Accept:** user can sign up, log in, see their forwarding address on Settings.
+_Status as of 2026-11-26. `[x]` = built and tested; notes say what differs from the original plan.
+Details per phase are in `PROGRESS.md`. Live at https://order-info-tracker.vercel.app._
 
-### Phase 2 — Manual purchases + deadlines (days 4–6)
-- [ ] Store table seeded (top 10, verified policies or null)
-- [ ] `computeDeadlines()` with full unit tests (EC-DATE-*)
-- [ ] Manual add/edit/delete, item-level fields
-- [ ] Dashboard tabs + countdown chips + purchase detail
-- [ ] Status actions (returned/kept/cancelled)
-**Accept:** all deadline tests pass; manual purchase shows correct countdown.
+### Phase 1 — Foundation (days 1–3) ✅
+- [x] Next.js + TS + Tailwind + shadcn setup, ESLint, Prettier, Vitest, Playwright
+- [x] Drizzle schema + migrations for all tables in Section 5
+- [x] Auth.js: magic link + Google (no extra scopes) — magic link also carries a typeable sign-in code (installed app); Google wired but untested without OAuth credentials
+- [x] On first login: create forwarding address, detect timezone
+- [x] Basic layout, responsive mobile-first nav
+- [x] Env validation with zod (`lib/env.ts`)
+**Accept:** user can sign up, log in, see their forwarding address on Settings. ✅
 
-### Phase 3 — Inbound email pipeline (days 7–12)
-- [ ] Postmark inbound domain + webhook route with auth + idempotency
-- [ ] Encryption helpers; raw retention + cleanup cron
-- [ ] Forward unwrapping, html-to-text, store matching
-- [ ] Gmail verification code detection + in-app display
-- [ ] Templates for top 10 stores with fixture tests (≥3 fixtures each)
-- [ ] LLM fallback with redaction, zod schema, caps, retries
-- [ ] Merge rules (6.4) with tests for confirmation→shipped→delivered→cancelled
-- [ ] Needs-review flow + review screen
-**Accept:** forwarding each fixture email produces the correct purchase; duplicates merge; raw content is null after processing.
+### Phase 2 — Manual purchases + deadlines (days 4–6) ✅
+- [x] Store table seeded (top 10, verified policies or null) — Amazon.in/.com, Myntra, AJIO, Croma still null (official pages blocked automated checks)
+- [x] `computeDeadlines()` with full unit tests (EC-DATE-*)
+- [x] Manual add/edit/delete, item-level fields
+- [x] Dashboard tabs + countdown chips + purchase detail
+- [x] Status actions (returned/kept/cancelled)
+**Accept:** all deadline tests pass; manual purchase shows correct countdown. ✅
 
-### Phase 4 — Receipts & documents (days 13–15)
+### Phase 3 — Inbound email pipeline (days 7–12) 🟡 (templates pending)
+- [x] Inbound domain + webhook route with auth + idempotency — **Resend receiving** (`<id>.resend.app`, Svix-signed) instead of Postmark; Postmark still supported on the same route
+- [x] Encryption helpers; raw retention + cleanup cron
+- [x] Forward unwrapping, html-to-text, store matching
+- [x] Gmail verification code detection + in-app display
+- [ ] Templates for top 10 stores with fixture tests (≥3 fixtures each) — **needs 3+ real anonymized emails per store**; generic extractor used meanwhile
+- [x] LLM fallback with redaction, zod schema, caps, retries — built and unit-tested with a mocked client; **off until `ANTHROPIC_API_KEY` is set**
+- [x] Merge rules (6.4) with tests for confirmation→shipped→delivered→cancelled
+- [x] Needs-review flow + review screen
+**Accept:** forwarding each fixture email produces the correct purchase; duplicates merge; raw content is null after processing. 🟡 Verified with synthetic fixtures and real forwarded emails in production; per-store template fixtures pending.
+
+### Phase 4 — Receipts & documents (days 13–15) ⏸ on hold (build only when requested)
 - [ ] Upload endpoint (type/size checks), PDF text extraction, image → LLM vision
 - [ ] Draft review → confirm → save; optional encrypted receipt storage
 - [ ] Signed URL viewing
 **Accept:** a photo and a PDF receipt each produce a reviewable draft; stored files are private.
 
-### Phase 5 — Reminders & PWA (days 16–20)
-- [ ] Manifest, icons (192/512/maskable), service worker, offline dashboard cache, update prompt
-- [ ] Install prompts (Android + iOS instructions)
-- [ ] VAPID keys, subscribe/unsubscribe, test notification button
-- [ ] Reminder generation + cron sender + digest + quiet hours + email fallback
-- [ ] Notification click → deep link; action buttons
-**Accept:** Lighthouse PWA installable; reminders arrive on Android Chrome and installed iOS PWA; email fallback works when push is denied.
+### Phase 5 — Reminders & PWA (days 16–20) ✅ (real-device checks pending)
+- [x] Manifest, icons (192/512/maskable), service worker, offline dashboard cache, update prompt — offline page is rendered by the service worker from the saved dashboard JSON
+- [x] Install prompts (Android + iOS instructions)
+- [x] VAPID keys, subscribe/unsubscribe, test notification button
+- [x] Reminder generation + cron sender + digest + quiet hours + email fallback — on Vercel Hobby the 15-min sender is called by cron-job.org (setup still to be confirmed)
+- [x] Notification click → deep link; action buttons
+**Accept:** Lighthouse PWA installable; reminders arrive on Android Chrome and installed iOS PWA; email fallback works when push is denied. 🟡 Email fallback and push (to a test push service) verified in e2e; installed on iPhone; real-device push and Lighthouse still to check.
 
-### Phase 6 — Claims, export, delete, polish (days 21–25)
-- [ ] Claim draft (LLM) + status timeline + follow-up reminder
-- [ ] Export (JSON/CSV) + delete account (full cascade incl. storage)
-- [ ] Rate limits, Sentry, audit log
-- [ ] Empty/error/loading states everywhere; accessibility pass (labels, contrast, focus)
-- [ ] Privacy policy + terms pages (plain language)
-**Accept:** full e2e test passes (Section 13); delete account leaves no rows/files for that user.
+### Phase 5b — Order tracking ✅ (added 2026-11-26)
+- [x] Orders tab: everything ordered but not delivered, from any store, soonest arrival first
+- [x] Stages Ordered → Shipped → Out for delivery → Delivered (from emails, forward only; or by hand)
+- [x] "Mark as delivered" asks for the date (the return window counts from it)
+- [x] "Did your order arrive?" reminder (day after expected delivery, or 7 days after ordering)
+**Accept:** an order moves through all stages from emails and by hand, and leaves Orders once delivered. ✅
 
-### Phase 7 — Launch
-- [ ] Production domain, MX for inbound subdomain, SPF/DKIM/DMARC for outbound
+### Phase 6 — Claims, export, delete, polish (days 21–25) ✅ (claims dropped)
+- [ ] ~~Claim draft (LLM) + status timeline + follow-up reminder~~ — **out of scope** (decided 2026-11-25)
+- [x] Export (JSON/CSV) + delete account (full cascade incl. storage) — no file storage exists yet (Phase 4 on hold); forwarding addresses kept as unlinked tombstones so they're never reused
+- [x] Rate limits, audit log
+- [ ] Sentry — needs a Sentry account/DSN; errors currently go to Vercel logs
+- [x] Empty/error/loading states everywhere; accessibility pass (labels, contrast, focus) — axe WCAG 2.1 A/AA checks pass on all pages
+- [x] Privacy policy + terms pages (plain language) — draft; set `CONTACT_EMAIL` and get them reviewed before inviting others
+**Accept:** full e2e test passes (Section 13); delete account leaves no rows/files for that user. ✅
+
+### Phase 7 — Launch (next)
+- [ ] Production domain, MX for inbound subdomain, SPF/DKIM/DMARC for outbound — deployed on `order-info-tracker.vercel.app` with Resend's `lunuedyeni.resend.app` inbound; no own domain yet, so sign-in/reminder emails only reach the Resend account owner
 - [ ] Seed policies re-verified
 - [ ] Landing page + waitlist conversion
 - [ ] Monitoring: parse success rate, needs_review rate, LLM cost/day, reminder delivery rate

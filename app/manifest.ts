@@ -34,6 +34,32 @@ export default function manifest(): MetadataRoute.Manifest {
         purpose: "maskable",
       },
     ],
+    // Android: shows KeepTrack in the share sheet for screenshots, photos,
+    // PDFs and text. public/sw.js answers the POST (see the share spec).
+    // Installed apps pick this up only after the PWA updates or is reinstalled.
+    share_target: {
+      action: "/share-target",
+      method: "POST",
+      enctype: "multipart/form-data",
+      params: {
+        title: "title",
+        text: "text",
+        url: "url",
+        files: [
+          {
+            name: "files",
+            accept: [
+              "image/png",
+              "image/jpeg",
+              "image/webp",
+              "image/heic",
+              "image/heif",
+              "application/pdf",
+            ],
+          },
+        ],
+      },
+    },
     shortcuts: [
       {
         name: "Orders on the way",

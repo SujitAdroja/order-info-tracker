@@ -659,9 +659,12 @@ To build when this stage starts:
 reminders, and leaves the tab when its warranty ends or it's returned.
 
 ### Phase 4 — Receipts & documents (optional; build only when requested)
-**Status:** on hold — moved to the end on 2026-11-26; we'll decide later whether to build it.
-- [ ] Upload endpoint (type/size checks), PDF text extraction, image → LLM vision
-- [ ] Draft review → confirm → save; optional encrypted receipt storage
+**Status:** on hold — moved to the end on 2026-11-26; we'll decide later whether to build it. The
+upload/review part was built on 2026-11-26 for **Share screenshots to the app** (see `PROGRESS.md`).
+- [x] Upload endpoint (type/size checks), PDF text extraction, image → LLM vision (plus on-device OCR
+      when there's no API key)
+- [x] Draft review → confirm → save
+- [ ] Optional encrypted receipt storage ("Keep as proof")
 - [ ] Signed URL viewing
 **Accept:** a photo and a PDF receipt each produce a reviewable draft; stored files are private.
 

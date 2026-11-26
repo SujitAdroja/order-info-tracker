@@ -17,6 +17,9 @@ export const LIMITS = {
   signInCodeAttempts: { limit: 10, windowSeconds: 15 * 60 },
   export: { limit: 10, windowSeconds: 24 * 60 * 60 },
   regenerateAddress: { limit: 3, windowSeconds: 24 * 60 * 60 },
+  // Shared/uploaded receipts (share spec 3.4: ~20 a day per user).
+  receiptUpload: { limit: 20, windowSeconds: 24 * 60 * 60 },
+  heicConvert: { limit: 40, windowSeconds: 24 * 60 * 60 },
 } satisfies Record<string, Limit>;
 
 export function signInIpLimit(): Limit {

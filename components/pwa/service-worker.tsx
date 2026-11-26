@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { toast } from "sonner";
+import { clearShares } from "@/lib/shares/idb";
 
 export const SW_URL = `/sw.js?v=${process.env.NEXT_PUBLIC_APP_VERSION ?? "dev"}${
   process.env.NODE_ENV === "development" ? "&dev=1" : ""
@@ -74,6 +75,8 @@ export async function clearOfflineData(): Promise<void> {
   try {
     if ("caches" in window) await caches.delete("keeptrack-data");
     navigator.serviceWorker?.controller?.postMessage({ type: "CLEAR_DATA" });
+    // Unsaved shared screenshots belong to whoever was signed in.
+    if ("indexedDB" in window) await clearShares();
   } catch {
     // best effort
   }

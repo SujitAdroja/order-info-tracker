@@ -40,6 +40,8 @@ test("app pages have no WCAG A/AA violations", async ({ page }) => {
     "/add",
     "/settings",
     "/onboarding",
+    "/add/review?share=00000000-0000-0000-0000-000000000000",
+    "/add/review?share_error=1",
   ]) {
     await page.goto(path);
     await page.waitForLoadState("domcontentloaded");

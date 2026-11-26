@@ -189,6 +189,8 @@ function boundsErrors(
 export async function createManualPurchase(
   user: CurrentUser,
   input: PurchaseInput,
+  /** A reviewed receipt/screenshot draft records where it came from. */
+  opts: { source?: "manual" | "receipt_image" | "receipt_pdf" } = {},
 ): Promise<WriteResult> {
   const today = todayInTimeZone(user.timezone);
   const bounds = boundsErrors(input, today);
@@ -221,7 +223,7 @@ export async function createManualPurchase(
           storeId: store?.id ?? null,
           storeName: store?.name ?? input.storeName,
           externalOrderId: input.externalOrderId,
-          source: "manual",
+          source: opts.source ?? "manual",
           status,
           orderDate: input.orderDate,
           deliveryDate: input.deliveryDate,

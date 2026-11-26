@@ -129,7 +129,7 @@ async function reserveLlmParse(id: string, userId: string): Promise<boolean> {
 }
 
 /** Section 6.2 step 7 sanity checks on dates. */
-function sanitizeOrder(order: ParsedOrder, today: ISODate): ParsedOrder {
+export function sanitizeOrder(order: ParsedOrder, today: ISODate): ParsedOrder {
   const out = { ...order };
   if (out.order_date && checkOrderDateBounds(out.order_date, today))
     out.order_date = null;

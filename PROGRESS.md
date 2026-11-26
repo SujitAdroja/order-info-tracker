@@ -319,4 +319,55 @@ Track everything you ordered, from any store or app, until it's delivered.
   warranty rules with the switch forced on. Planned as **Phase 8 — Warranty tracking** in
   `IMPLEMENTATION_PLAN.md`, to build only when requested.
 
+## Share screenshots to the app ✅ (added on request, 2026-11-26; awaiting device testing)
+
+Take a screenshot of an order in any shopping app → Share → KeepTrack → review → save. Also takes
+shared PDF invoices and text, and the same flow runs from **Add → Upload screenshot or PDF** (iPhone,
+desktop).
+
+- **Share target** (`app/manifest.ts`): Android only, installed app only. `public/sw.js` receives the
+  POST, keeps the files on the device (IndexedDB `keeptrack-shares`; client helper `lib/shares/idb.ts`)
+  and opens `/add/review?share=<id>`. `POST /share-target` on the server covers a service worker that
+  isn't active yet (EC-SHR-16). iPhone Safari has no share target, so iPhone uses the Upload button.
+- **Reading screenshots — Tesseract hybrid** (decided with the user):
+  - no `ANTHROPIC_API_KEY` (today): OCR **on the device** with Tesseract.js, then the text goes to the
+    existing rule-based parser plus screenshot rules (`lib/uploads/screen-text.ts`: dates without a
+    year, "Order ID - OD…", item title above "Sold by"/"Qty"). Results are always highlighted for
+    checking. The OCR files (~7 MB, cached after first use) are served from our own site
+    (`public/ocr`, copied by `scripts/copy-ocr-assets.mjs` on `npm install`), never a CDN.
+  - with the key: all images of a share go to Claude's vision in one call (`lib/uploads/vision.ts`,
+    prompt ignores status bar, ads, addresses, phone numbers); OCR stays the fallback when the API is
+    down or the daily limit is reached.
+- **Server** `POST /api/uploads/receipt` (`lib/uploads/extract.ts`): up to 5 files + text + OCR text;
+  file types sniffed from the bytes; PDFs → text parser; text that's only a product link →
+  "screenshot the order page instead" (the link is never fetched); several orders → choose which to
+  add; duplicate check (same order number, or same store + date ±1 day + total) → **Update existing /
+  Add anyway**. Rate limit 20 a day per user. Nothing is stored; logs carry counts only.
+  `POST /api/uploads/heic` converts HEIC photos the phone's browser can't open (`heic-convert`).
+- **Review** `/add/review` reuses the purchase form (new optional props: custom save, highlighted
+  fields, extra buttons). Offline → kept and read when back online; left unsaved → dashboard banner,
+  expires after 7 days; signed out → back to the review after sign-in; logout clears shares.
+- **Tips:** Add page line and a one-time dashboard card on phones (Android installed / not installed /
+  iPhone wording), including "Don't see KeepTrack in Share? Reopen the app or reinstall it."
+- **New packages (approved):** `tesseract.js`, `@tesseract.js-data/eng`, `heic-convert`; dev:
+  `fake-indexeddb`, `@types/heic-convert`.
+- Tests: `tests/unit/shares.test.ts`, `uploads.test.ts`, `uploads-vision.test.ts`; `tests/e2e/share.spec.ts`
+  (real OCR in the browser, PDF via the service worker, link-only, offline, signed-out, duplicates,
+  unsupported files, server fallback, API checks).
+
+### Decisions / deviations (please review)
+
+- **4 MB per share instead of 10 MB:** Vercel functions accept at most 4.5 MB per request. Images are
+  compressed first (1600 px JPEG), so this only limits large PDFs ("try a screenshot of it instead").
+- **No "Keep as proof":** there's no file storage yet (rest of Phase 4 stays on hold), so shared
+  images are never stored.
+- **Saved purchases** record `source` = `receipt_image` / `receipt_pdf`.
+
+### Not verified yet
+
+- On a real Android phone (share sheet, HEIC photos) — needs a deploy; see the manual steps in the
+  share spec. Changing the manifest means installed apps show "Share to KeepTrack" only after the PWA
+  updates or is reinstalled.
+- Real Claude vision calls (no API key yet); covered by mocked unit tests.
+
 ## Next: Phase 7 — Launch

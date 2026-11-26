@@ -7,6 +7,8 @@
  *   from the last dashboard JSON saved from /api/purchases. It needs no
  *   JavaScript, so it works even if the app's code was never cached.
  * - Updates (EC-PWA-02): a new version waits until the user taps "Reload".
+ * - Share target (Android): screenshots/PDFs/text shared to the app are kept
+ *   on the device (IndexedDB) and the review screen reads them from there.
  *
  * The version comes from the registration URL (`/sw.js?v=…`); changing it
  * installs a new worker and drops old static caches.
@@ -46,6 +48,105 @@ self.addEventListener("message", (event) => {
   if (type === "CLEAR_DATA") event.waitUntil(caches.delete(DATA_CACHE));
 });
 
+// ---------------------------------------------------------------------------
+// Share target (registered before the other fetch handler). Keep the database
+// name/version/store in sync with lib/shares/idb.ts and the file rules with
+// lib/shares/rules.ts.
+// ---------------------------------------------------------------------------
+
+const SHARE_DB = "keeptrack-shares";
+const SHARE_STORE = "shares";
+const MAX_SHARE_FILES = 5;
+const SHARE_IMAGE_TYPES = [
+  "image/png",
+  "image/jpeg",
+  "image/webp",
+  "image/heic",
+  "image/heif",
+];
+
+self.addEventListener("fetch", (event) => {
+  const url = new URL(event.request.url);
+  if (
+    event.request.method !== "POST" ||
+    url.origin !== self.location.origin ||
+    url.pathname !== "/share-target"
+  )
+    return;
+  event.respondWith(receiveShare(event.request));
+});
+
+async function receiveShare(request) {
+  try {
+    const form = await request.formData();
+    const all = form
+      .getAll("files")
+      .filter((f) => f instanceof File && f.size > 0);
+    const supported = all.filter(isShareable);
+    // Same as joinSharedText in lib/shares/rules.ts.
+    const vals = ["title", "text", "url"]
+      .map((k) => form.get(k))
+      .filter((v) => typeof v === "string" && v.trim())
+      .map((v) => v.trim());
+    const text = vals.filter(
+      (v, i) =>
+        !vals.some((o, j) => j !== i && o.includes(v) && (o !== v || j < i)),
+    );
+    const id = crypto.randomUUID();
+    await putShare({
+      id,
+      createdAt: Date.now(),
+      source: "share_target",
+      files: supported.slice(0, MAX_SHARE_FILES),
+      text: text.join("\n").slice(0, 5000),
+      dropped: {
+        unsupported: all.length - supported.length,
+        overLimit: Math.max(0, supported.length - MAX_SHARE_FILES),
+      },
+    });
+    return Response.redirect(`/add/review?share=${id}`, 303);
+  } catch {
+    return Response.redirect("/add/review?share_error=1", 303);
+  }
+}
+
+function isShareable(file) {
+  const type = (file.type || "").toLowerCase();
+  const ext = (file.name || "").toLowerCase().split(".").pop();
+  if (SHARE_IMAGE_TYPES.includes(type) || type === "application/pdf")
+    return true;
+  if (!type || type === "application/octet-stream")
+    return ["png", "jpg", "jpeg", "webp", "heic", "heif", "pdf"].includes(ext);
+  return false;
+}
+
+function openShareDb() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(SHARE_DB, 1);
+    req.onupgradeneeded = () => {
+      if (!req.result.objectStoreNames.contains(SHARE_STORE))
+        req.result.createObjectStore(SHARE_STORE, { keyPath: "id" });
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function putShare(record) {
+  const db = await openShareDb();
+  try {
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction(SHARE_STORE, "readwrite");
+      tx.objectStore(SHARE_STORE).put(record);
+      tx.oncomplete = resolve;
+      tx.onerror = () => reject(tx.error);
+      tx.onabort = () => reject(tx.error);
+    });
+  } finally {
+    db.close();
+  }
+}
+
 self.addEventListener("fetch", (event) => {
   const req = event.request;
   if (req.method !== "GET") return;
@@ -66,7 +167,7 @@ self.addEventListener("fetch", (event) => {
     return;
   }
   if (req.mode === "navigate") {
-    event.respondWith(fetch(req).catch(() => offlinePage()));
+    event.respondWith(fetch(req).catch(() => offlinePage(url)));
   }
 });
 
@@ -106,7 +207,25 @@ async function dashboardData(req) {
 // Offline page (rendered here from the saved JSON; no app code needed)
 // ---------------------------------------------------------------------------
 
-async function offlinePage() {
+// EC-SHR-09: shared while offline. The share is already saved on the device;
+// this reloads the review screen as soon as the connection is back.
+const RELOAD_ON_ONLINE =
+  'addEventListener("online",function(){location.reload()})';
+let reloadScriptHash = null;
+async function reloadHash() {
+  if (!reloadScriptHash) {
+    const digest = await crypto.subtle.digest(
+      "SHA-256",
+      new TextEncoder().encode(RELOAD_ON_ONLINE),
+    );
+    reloadScriptHash = btoa(String.fromCharCode(...new Uint8Array(digest)));
+  }
+  return reloadScriptHash;
+}
+
+async function offlinePage(url) {
+  const sharePending =
+    url && url.pathname === "/add/review" && url.searchParams.has("share");
   let data = null;
   try {
     const cached = await caches.match("/api/purchases", {
@@ -116,13 +235,13 @@ async function offlinePage() {
   } catch {
     data = null;
   }
-  return new Response(renderOffline(data), {
+  const script = sharePending ? `'sha256-${await reloadHash()}'` : "'none'";
+  return new Response(renderOffline(data, sharePending), {
     status: 200,
     headers: {
       "content-type": "text/html; charset=utf-8",
       "cache-control": "no-store",
-      "content-security-policy":
-        "default-src 'none'; style-src 'unsafe-inline'; img-src 'self'",
+      "content-security-policy": `default-src 'none'; style-src 'unsafe-inline'; img-src 'self'; script-src ${script}`,
     },
   });
 }
@@ -193,7 +312,7 @@ function chip(prefix, deadline, today, estimated) {
 }
 
 /** Mirrors lib/purchases/buckets.ts (read-only lists; warranty tab hidden). */
-function renderOffline(data) {
+function renderOffline(data, sharePending) {
   const sections = [];
   if (data && Array.isArray(data.purchases)) {
     const today = todayIn(data.timezone);
@@ -271,7 +390,11 @@ li{border:1px solid var(--line);border-radius:.6rem;padding:.75rem;display:grid;
 .chip{justify-self:start;font-size:.75rem;font-weight:500;border-radius:999px;padding:.15rem .6rem;background:#eee;color:#111}
 .chip.danger{background:#fee2e2;color:#991b1b}.chip.warning{background:#fef3c7;color:#78350f}
 </style></head><body>
-<div class="banner" role="status"><p><strong>Offline — showing saved data</strong></p>
+${
+  sharePending
+    ? `<div class="banner" role="status" data-testid="offline-share"><p><strong>You're offline</strong></p><p>What you shared is saved on this device. We'll read it when you're back online.</p></div><script>${RELOAD_ON_ONLINE}</script><p></p>`
+    : ""
+}<div class="banner" role="status"><p><strong>Offline — showing saved data</strong></p>
 <p>${saved}Changes are paused until you're back online.</p>
 <p><a href="">Try again</a></p></div>
 ${sections.join("\n")}

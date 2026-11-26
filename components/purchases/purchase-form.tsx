@@ -39,11 +39,23 @@ export function PurchaseForm({
   initial,
   stores,
   submitLabel,
+  onSave,
+  check = [],
+  hints = {},
+  footer,
 }: {
   purchaseId?: string;
   initial: PurchaseFormValues;
   stores: StoreOption[];
   submitLabel: string;
+  /** Replaces the default create/update (used by the receipt review screen). */
+  onSave?: (values: PurchaseFormValues) => Promise<SavePurchaseResult>;
+  /** Field ids to highlight for checking: "storeName", "orderDate", "items.0.name". */
+  check?: string[];
+  /** Hints shown under a field instead of the default one. */
+  hints?: Partial<Record<"storeName" | "orderDate", string>>;
+  /** Extra buttons next to Save. */
+  footer?: ReactNode;
 }) {
   const [values, setValues] = useState(initial);
   const [errors, setErrors] = useState<FieldErrors>({});
@@ -74,9 +86,11 @@ export function PurchaseForm({
     // The zod schema strips client-only fields like `key`.
     const payload = values;
     startTransition(async () => {
-      const result: SavePurchaseResult = purchaseId
-        ? await updatePurchaseAction(purchaseId, payload)
-        : await createPurchaseAction(payload);
+      const result: SavePurchaseResult = onSave
+        ? await onSave(payload)
+        : purchaseId
+          ? await updatePurchaseAction(purchaseId, payload)
+          : await createPurchaseAction(payload);
       if (result && !result.ok) {
         setErrors(result.errors);
         // Move focus to the first invalid field for keyboard/screen-reader users.
@@ -103,7 +117,14 @@ export function PurchaseForm({
       <fieldset className="grid gap-4" disabled={pending}>
         <legend className="mb-2 font-medium">Purchase</legend>
 
-        <Field id="storeName" label="Store" required error={errors.storeName}>
+        <Field
+          id="storeName"
+          label="Store"
+          required
+          error={errors.storeName}
+          check={check.includes("storeName")}
+          hint={hints.storeName}
+        >
           <Input
             id="storeName"
             list={storeListId}
@@ -126,6 +147,8 @@ export function PurchaseForm({
             label="Order date"
             required
             error={errors.orderDate}
+            check={check.includes("orderDate")}
+            hint={hints.orderDate}
           >
             <Input
               id="orderDate"
@@ -229,6 +252,7 @@ export function PurchaseForm({
             item={item}
             errors={errors}
             showStatus={!!purchaseId}
+            checkName={check.includes(`items.${index}.name`)}
             canRemove={values.items.length > 1}
             onChange={(patch) => setItem(item.key, patch)}
             onRemove={() =>
@@ -274,6 +298,7 @@ export function PurchaseForm({
         <OnlineButton type="submit" size="lg" disabled={pending}>
           {pending ? "Saving…" : submitLabel}
         </OnlineButton>
+        {footer}
       </div>
     </form>
   );
@@ -284,6 +309,7 @@ function ItemFields({
   item,
   errors,
   showStatus,
+  checkName,
   canRemove,
   onChange,
   onRemove,
@@ -292,6 +318,7 @@ function ItemFields({
   item: ItemFormValues;
   errors: FieldErrors;
   showStatus: boolean;
+  checkName: boolean;
   canRemove: boolean;
   onChange: (patch: Partial<ItemFormValues>) => void;
   onRemove: () => void;
@@ -325,6 +352,7 @@ function ItemFields({
         label="Item name"
         required
         error={errors[`${p}.name`]}
+        check={checkName}
       >
         <Input
           id={id("name")}
@@ -485,6 +513,7 @@ function Field({
   required,
   error,
   hint,
+  check,
   children,
 }: {
   id: string;
@@ -492,12 +521,21 @@ function Field({
   required?: boolean;
   error?: string;
   hint?: string;
+  /** Read from a screenshot/receipt and worth a second look. */
+  check?: boolean;
   children: ReactNode;
 }) {
   // Error ids mirror the field-error keys (dots → dashes) used by `invalid()`.
   const errorKey = id.replace(/^item-(\d+)-/, "items-$1-");
   return (
-    <div className="grid content-start gap-1.5">
+    <div
+      className={cn(
+        "grid content-start gap-1.5",
+        check &&
+          "[&_input]:border-amber-500 [&_input]:bg-amber-50 dark:[&_input]:bg-amber-950/40",
+      )}
+      data-check={check ? "true" : undefined}
+    >
       <Label htmlFor={id}>
         {label}
         {required ? (
@@ -512,7 +550,20 @@ function Field({
           {error}
         </p>
       ) : hint ? (
-        <p className="text-xs text-muted-foreground">{hint}</p>
+        <p
+          className={cn(
+            "text-xs",
+            check
+              ? "text-amber-800 dark:text-amber-300"
+              : "text-muted-foreground",
+          )}
+        >
+          {hint}
+        </p>
+      ) : check ? (
+        <p className="text-xs text-amber-800 dark:text-amber-300">
+          Please check this.
+        </p>
       ) : null}
     </div>
   );

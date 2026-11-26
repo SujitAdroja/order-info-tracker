@@ -7,6 +7,8 @@ import {
   ForwardingAddressSkeleton,
 } from "@/components/forwarding-address-card";
 import { PurchaseCard } from "@/components/purchases/purchase-card";
+import { ShareTip } from "@/components/shares/share-tip";
+import { UnsavedSharesBanner } from "@/components/shares/unsaved-shares-banner";
 import { buttonVariants } from "@/components/ui/button";
 import { todayInTimeZone } from "@/lib/dates";
 import {
@@ -49,9 +51,12 @@ export default function DashboardPage({
           Add purchase
         </Link>
       </div>
+      <UnsavedSharesBanner />
       <Suspense fallback={<DashboardSkeleton />}>
         <DashboardContent searchParams={searchParams} />
       </Suspense>
+      {/* Below the lists: it appears after hydration and mustn't shift them. */}
+      <ShareTip variant="dashboard" />
     </div>
   );
 }

@@ -7,3 +7,4 @@ components/ui
 package-lock.json
 IMPLEMENTATION_PLAN.md
 .next-e2e
+public/ocr

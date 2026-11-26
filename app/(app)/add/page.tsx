@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { PurchaseForm } from "@/components/purchases/purchase-form";
+import { ShareTip } from "@/components/shares/share-tip";
+import { UploadReceiptButton } from "@/components/shares/upload-receipt-button";
 import { todayInTimeZone } from "@/lib/dates";
 import { newPurchaseValues } from "@/lib/purchases/form-values";
 import { listStoreOptions } from "@/lib/purchases/service";
@@ -16,9 +18,17 @@ export default function AddPage() {
           Add a purchase
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Receipt upload is coming soon. For now, enter the details by hand.
+          Upload a screenshot of the order or an invoice PDF and we&apos;ll fill
+          in the details, or enter them by hand below.
         </p>
       </div>
+      <section
+        className="grid gap-3 rounded-xl border p-4"
+        aria-label="From a screenshot"
+      >
+        <UploadReceiptButton />
+        <ShareTip variant="add" />
+      </section>
       <Suspense
         fallback={
           <div

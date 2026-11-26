@@ -49,3 +49,6 @@ next-env.d.ts
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+
+# on-device OCR files (copied by scripts/copy-ocr-assets.mjs)
+/public/ocr/

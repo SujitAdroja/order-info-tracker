@@ -14,6 +14,7 @@ import { StatusBadge } from "@/components/purchases/status-badge";
 import { buttonVariants } from "@/components/ui/button";
 import { formatISODate } from "@/lib/dates";
 import type { DeadlineResult, ReturnBase } from "@/lib/deadlines/compute";
+import { FEATURES } from "@/lib/features";
 import { formatMoney } from "@/lib/format";
 import { CATEGORY_LABELS, type Category } from "@/lib/purchases/constants";
 import {
@@ -111,7 +112,7 @@ async function PurchaseContent({
           Deadlines
         </h2>
         <ReturnSummary p={p} />
-        <WarrantySummary p={p} />
+        {FEATURES.warranty ? <WarrantySummary p={p} /> : null}
       </section>
 
       <StatusActions purchaseId={p.id} status={p.status} />
@@ -272,14 +273,14 @@ function ItemRow({ p, index }: { p: PurchaseDetail; index: number }) {
           .filter(Boolean)
           .join(" · ")}
       </span>
-      {c.warrantyMonths ? (
+      {FEATURES.warranty && c.warrantyMonths ? (
         <span>
           Warranty: {c.warrantyMonths} months
           {c.warrantyMonthsIsDefault ? " (typical for this category)" : ""}
           {c.warrantyEnd ? `, until ${formatISODate(c.warrantyEnd)}` : ""}
         </span>
       ) : null}
-      {item.extendedWarrantyEnd ? (
+      {FEATURES.warranty && item.extendedWarrantyEnd ? (
         <span>
           Extended warranty until {formatISODate(item.extendedWarrantyEnd)}
         </span>

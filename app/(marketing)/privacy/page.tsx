@@ -7,8 +7,8 @@ export default function PrivacyPage() {
   return (
     <LegalPage title="Privacy" updated="25 November 2026">
       <p>
-        KeepTrack reminds you about return windows and warranties. This page
-        explains, in plain words, what we store, why, who helps us run the
+        KeepTrack tracks your orders and reminds you about return windows. This
+        page explains, in plain words, what we store, why, who helps us run the
         service, and how to get your data or delete it.
       </p>
 

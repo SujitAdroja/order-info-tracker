@@ -165,8 +165,8 @@ export function PushSettings({
       {status === "off" && (
         <>
           <p className="text-muted-foreground">
-            Get reminders on this device before return windows close and
-            warranties end.
+            Get reminders on this device when orders are due and before return
+            windows close.
           </p>
           <OnlineButton
             onClick={turnOn}

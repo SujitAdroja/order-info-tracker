@@ -130,7 +130,24 @@ describe("planReminders — return window (Section 9)", () => {
   });
 });
 
-describe("planReminders — warranty", () => {
+describe("planReminders — warranty (hidden feature; rules kept)", () => {
+  it("off by default while FEATURES.warranty is false", () => {
+    const rs = planReminders(
+      input({
+        returnDeadline: null,
+        items: [
+          {
+            id: "i",
+            itemStatus: "active",
+            warrantyEnd: "2027-06-30",
+            extendedWarrantyEnd: null,
+          },
+        ],
+      }),
+    );
+    expect(rs).toEqual([]);
+  });
+
   const item = (over = {}) => ({
     id: "item-1",
     itemStatus: "active",
@@ -141,7 +158,12 @@ describe("planReminders — warranty", () => {
 
   it("W-30 and W-7 per owned item, for active or kept purchases", () => {
     const rs = planReminders(
-      input({ status: "kept", returnDeadline: null, items: [item()] }),
+      input({
+        warranty: true,
+        status: "kept",
+        returnDeadline: null,
+        items: [item()],
+      }),
     );
     expect(summary(rs)).toEqual([
       `warranty:W-30@${ist("2027-05-31")}`,
@@ -153,6 +175,7 @@ describe("planReminders — warranty", () => {
   it("uses the later of warranty and extended warranty (EC-DATE-12)", () => {
     const rs = planReminders(
       input({
+        warranty: true,
         returnDeadline: null,
         items: [item({ extendedWarrantyEnd: "2028-06-30" })],
       }),

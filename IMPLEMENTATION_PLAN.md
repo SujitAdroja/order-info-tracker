@@ -632,6 +632,27 @@ Use Server Actions for form mutations if preferred; keep the same validation lay
 - [ ] Landing page + waitlist conversion
 - [ ] Monitoring: parse success rate, needs_review rate, LLM cost/day, reminder delivery rate
 
+### Phase 8 — Warranty tracking (optional; build only when requested)
+**Status:** hidden since 2026-11-26 to keep the app simple. Most of it already exists behind
+`FEATURES.warranty` in `lib/features.ts` (currently `false`); warranty dates are still computed and
+stored, so switching it on shows correct data straight away.
+
+Already built (hidden):
+- Warranty end per item: explicit months, or category defaults (electronics/appliance 12 months), from
+  actual delivery (or order date); extended warranty, later date wins (Section 8, EC-DATE-12).
+- "Under warranty" dashboard tab, warranty countdown chips, warranty lines on the purchase page.
+- Form fields: warranty months, serial number, extended warranty end.
+- Reminders `W-30` / `W-7` per item, re-checked before sending; export includes warranty columns.
+
+To build when this stage starts:
+- [ ] Turn on `FEATURES.warranty`; review copy (landing, manifest, privacy/terms) to mention warranties again
+- [ ] Re-verify category default warranty months; per-store/brand defaults if needed
+- [ ] Warranty proof: attach invoice / warranty card (depends on Phase 4 receipts & documents)
+- [ ] Warranty section in onboarding and the offline page
+- [ ] (Separate decision) warranty claims (F8) — currently out of scope
+**Accept:** a kept electronics item shows under "Under warranty" with the right end date, gets W-30/W-7
+reminders, and leaves the tab when its warranty ends or it's returned.
+
 ---
 
 ## 13. Testing

@@ -9,6 +9,7 @@ import {
 } from "@/app/actions/purchases";
 import { OnlineButton } from "@/components/pwa/online-button";
 import { Button } from "@/components/ui/button";
+import { FEATURES } from "@/lib/features";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -383,59 +384,68 @@ function ItemFields({
         </Field>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Field
-          id={id("warrantyMonths")}
-          label="Warranty (months)"
-          error={errors[`${p}.warrantyMonths`]}
-          hint={
-            defaultMonths
-              ? `Blank uses the usual ${defaultMonths} months for this category.`
-              : "Blank if there's no warranty."
-          }
-        >
-          <Input
-            id={id("warrantyMonths")}
-            type="number"
-            inputMode="numeric"
-            min={0}
-            max={240}
-            placeholder={defaultMonths ? String(defaultMonths) : undefined}
-            value={item.warrantyMonths}
-            onChange={(e) => onChange({ warrantyMonths: e.target.value })}
-            {...invalid(`${p}.warrantyMonths`, errors)}
-          />
-        </Field>
-        <Field
-          id={id("serialNumber")}
-          label="Serial number"
-          error={errors[`${p}.serialNumber`]}
-        >
-          <Input
-            id={id("serialNumber")}
-            autoComplete="off"
-            value={item.serialNumber}
-            onChange={(e) => onChange({ serialNumber: e.target.value })}
-            {...invalid(`${p}.serialNumber`, errors)}
-          />
-        </Field>
-      </div>
+      {/* Warranty fields are hidden while FEATURES.warranty is off. */}
+      {FEATURES.warranty ? (
+        <>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field
+              id={id("warrantyMonths")}
+              label="Warranty (months)"
+              error={errors[`${p}.warrantyMonths`]}
+              hint={
+                defaultMonths
+                  ? `Blank uses the usual ${defaultMonths} months for this category.`
+                  : "Blank if there's no warranty."
+              }
+            >
+              <Input
+                id={id("warrantyMonths")}
+                type="number"
+                inputMode="numeric"
+                min={0}
+                max={240}
+                placeholder={defaultMonths ? String(defaultMonths) : undefined}
+                value={item.warrantyMonths}
+                onChange={(e) => onChange({ warrantyMonths: e.target.value })}
+                {...invalid(`${p}.warrantyMonths`, errors)}
+              />
+            </Field>
+            <Field
+              id={id("serialNumber")}
+              label="Serial number"
+              error={errors[`${p}.serialNumber`]}
+            >
+              <Input
+                id={id("serialNumber")}
+                autoComplete="off"
+                value={item.serialNumber}
+                onChange={(e) => onChange({ serialNumber: e.target.value })}
+                {...invalid(`${p}.serialNumber`, errors)}
+              />
+            </Field>
+          </div>
+        </>
+      ) : null}
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field
-          id={id("extendedWarrantyEnd")}
-          label="Extended warranty until"
-          error={errors[`${p}.extendedWarrantyEnd`]}
-          hint="Only if you bought one separately."
-        >
-          <Input
+        {FEATURES.warranty ? (
+          <Field
             id={id("extendedWarrantyEnd")}
-            type="date"
-            value={item.extendedWarrantyEnd}
-            onChange={(e) => onChange({ extendedWarrantyEnd: e.target.value })}
-            {...invalid(`${p}.extendedWarrantyEnd`, errors)}
-          />
-        </Field>
+            label="Extended warranty until"
+            error={errors[`${p}.extendedWarrantyEnd`]}
+            hint="Only if you bought one separately."
+          >
+            <Input
+              id={id("extendedWarrantyEnd")}
+              type="date"
+              value={item.extendedWarrantyEnd}
+              onChange={(e) =>
+                onChange({ extendedWarrantyEnd: e.target.value })
+              }
+              {...invalid(`${p}.extendedWarrantyEnd`, errors)}
+            />
+          </Field>
+        ) : null}
         {showStatus ? (
           <Field id={id("itemStatus")} label="Item status">
             <select

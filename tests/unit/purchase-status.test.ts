@@ -78,6 +78,12 @@ describe("dashboard tabs", () => {
     ...over,
   });
 
+  it("warranty tab is hidden while FEATURES.warranty is off", () => {
+    expect(
+      tabsFor(p({ status: "kept", latestWarrantyEnd: "2027-01-01" }), today),
+    ).toEqual(["history"]);
+  });
+
   it("not delivered yet → Orders (and still Returns while the estimate is open)", () => {
     expect(tabsFor(p({ deliveryDate: null }), today)).toEqual(["orders"]);
     expect(
@@ -111,13 +117,14 @@ describe("dashboard tabs", () => {
   });
 
   it("open return window → Returns; also warranty → both tabs", () => {
-    expect(tabsFor(p({ returnDeadline: "2026-03-10" }), today)).toEqual([
-      "returns",
-    ]);
+    expect(
+      tabsFor(p({ returnDeadline: "2026-03-10" }), today, { warranty: true }),
+    ).toEqual(["returns"]);
     expect(
       tabsFor(
         p({ returnDeadline: "2026-03-12", latestWarrantyEnd: "2027-03-01" }),
         today,
+        { warranty: true },
       ),
     ).toEqual(["returns", "warranty"]);
   });
@@ -131,6 +138,7 @@ describe("dashboard tabs", () => {
           latestWarrantyEnd: "2027-01-01",
         }),
         today,
+        { warranty: true },
       ),
     ).toEqual(["warranty"]);
   });
@@ -158,7 +166,7 @@ describe("dashboard tabs", () => {
       returnDeadline: "2026-03-11",
       latestWarrantyEnd: "2028-01-01",
     });
-    const buckets = bucketPurchases([a, b], today);
+    const buckets = bucketPurchases([a, b], today, { warranty: true });
     expect(buckets.returns).toEqual([b, a]);
     expect(buckets.warranty).toEqual([a, b]);
   });

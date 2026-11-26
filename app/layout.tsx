@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: { default: "KeepTrack", template: "%s · KeepTrack" },
   description:
-    "Never miss a return window or lose warranty proof. Forward the order emails you choose — no inbox access.",
+    "Track your orders and never miss a return window. Forward the order emails you choose — no inbox access.",
   applicationName: "KeepTrack",
   // iOS: installed to Home Screen runs standalone (needed for push, EC-PUSH-01).
   appleWebApp: { capable: true, title: "KeepTrack", statusBarStyle: "default" },

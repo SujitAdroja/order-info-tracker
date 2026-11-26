@@ -14,12 +14,12 @@ const STEPS = [
   {
     icon: BellRingIcon,
     title: "We work out the deadlines",
-    body: "Return windows and warranty end dates are calculated from the store's policy and your delivery date.",
+    body: "We follow each order until it's delivered, then work out the return window from the store's policy and your delivery date.",
   },
   {
     icon: ShieldCheckIcon,
     title: "Get reminded before it's too late",
-    body: "A nudge a week before a return window closes, and again before a warranty runs out.",
+    body: "A nudge a week before a return window closes, and again as the last day gets close.",
   },
 ] as const;
 
@@ -38,7 +38,7 @@ export default function LandingPage({ searchParams }: PageProps<"/">) {
 
       <section className="mt-14 sm:mt-20">
         <h1 className="text-4xl leading-tight font-semibold tracking-tight text-balance sm:text-5xl">
-          Never miss a return window. Never lose warranty proof.
+          Track every order. Never miss a return window.
         </h1>
         <p className="mt-5 max-w-xl text-lg text-pretty text-muted-foreground">
           Forward your order emails and KeepTrack reminds you before every

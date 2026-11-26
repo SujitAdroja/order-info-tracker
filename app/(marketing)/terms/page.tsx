@@ -19,8 +19,8 @@ export default function TermsPage() {
       <h2>What KeepTrack does</h2>
       <p>
         KeepTrack reads the order emails you forward (or the details you enter),
-        works out return and warranty deadlines, and reminds you before they
-        pass. It&apos;s free to use.
+        works out return deadlines, and reminds you before they pass. It&apos;s
+        free to use.
       </p>
 
       <h2>Deadlines are estimates — check with the store</h2>
@@ -36,9 +36,8 @@ export default function TermsPage() {
           can be delayed or blocked by your device, browser or email provider.
         </li>
         <li>
-          Always confirm a deadline with the store or manufacturer before
-          relying on it. We aren&apos;t responsible for a missed return or
-          warranty claim.
+          Always confirm a deadline with the store before relying on it. We
+          aren&apos;t responsible for a missed return.
         </li>
       </ul>
 

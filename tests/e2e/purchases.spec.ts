@@ -1,10 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import {
-  addDaysISO,
-  addMonthsISO,
-  formatISODate,
-  todayInTimeZone,
-} from "../../lib/dates";
+import { addDaysISO, formatISODate, todayInTimeZone } from "../../lib/dates";
 import { signUp } from "./helpers";
 
 // New users default to Asia/Kolkata; keep the browser consistent with that.
@@ -56,16 +51,15 @@ test("manual purchase shows the correct countdown, then moves to History when re
     price: "1299",
   });
 
-  // Detail page: exact return countdown + 12-month default warranty from delivery.
+  // Detail page: exact return countdown.
   const chip = page.getByTestId("return-countdown");
   await expect(chip).toHaveText("Return: 9 days left");
   await expect(chip).toHaveAttribute("data-tone", "neutral");
   await expect(page.getByTestId("return-deadline")).toHaveText(
     `By ${formatISODate(deadline)}`,
   );
-  await expect(page.getByTestId("warranty-end")).toHaveText(
-    `Until ${formatISODate(addMonthsISO(delivered, 12))}`,
-  );
+  // Warranty is hidden (FEATURES.warranty off).
+  await expect(page.getByTestId("warranty-end")).toHaveCount(0);
   await expect(
     page.getByText("10 days from delivery (you set this)"),
   ).toBeVisible();
@@ -80,7 +74,7 @@ test("manual purchase shows the correct countdown, then moves to History when re
   );
   await expect(card).toContainText("₹1,299");
 
-  // Mark returned → leaves Returns and Warranty, shows in History.
+  // Mark returned → leaves Returns, shows in History.
   await card.click();
   await page.getByRole("button", { name: "Returned", exact: true }).click();
   await expect(page.getByTestId("status-badge")).toHaveText("Returned");

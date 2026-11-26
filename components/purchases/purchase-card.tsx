@@ -4,6 +4,7 @@ import { OrderStageChip } from "@/components/purchases/order-stage-chip";
 import { StatusBadge } from "@/components/purchases/status-badge";
 import { formatISODate, type ISODate } from "@/lib/dates";
 import { formatMoney } from "@/lib/format";
+import { FEATURES } from "@/lib/features";
 import type { DashboardTab } from "@/lib/purchases/buckets";
 import type { PurchaseSummary } from "@/lib/purchases/service";
 
@@ -21,7 +22,9 @@ export function PurchaseCard({
     p.returnDeadline &&
     (tab === "returns" || tab === "review" || tab === "history");
   const showWarranty =
-    p.latestWarrantyEnd && (tab === "warranty" || tab === "history");
+    FEATURES.warranty &&
+    p.latestWarrantyEnd &&
+    (tab === "warranty" || tab === "history");
 
   return (
     <li>

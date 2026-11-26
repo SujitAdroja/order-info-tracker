@@ -11,6 +11,7 @@ import {
   type NotificationMessage,
   type ReminderContext,
 } from "@/lib/reminders/content";
+import { FEATURES } from "@/lib/features";
 import { isInTransit } from "@/lib/purchases/order-stage";
 import { isQuietHour, shiftOutOfQuietHours } from "@/lib/reminders/schedule";
 
@@ -132,6 +133,7 @@ export async function sendDueReminders(
           break;
         case "warranty":
           valid =
+            FEATURES.warranty &&
             (p.status === "active" || p.status === "kept") &&
             !!item &&
             (item.itemStatus === "active" || item.itemStatus === "kept") &&

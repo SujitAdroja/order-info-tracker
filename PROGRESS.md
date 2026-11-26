@@ -309,4 +309,14 @@ Track everything you ordered, from any store or app, until it's delivered.
   no date is known (`delivery_check`).
 - Tests: `tests/unit/order-stage.test.ts`, merge/classifier/reminder unit tests, `tests/e2e/orders.spec.ts`.
 
+## Warranty hidden ✅ (2026-11-26, to keep the app simple)
+
+- `FEATURES.warranty = false` (`lib/features.ts`) hides the Under warranty tab, warranty chips and
+  purchase-page lines, the warranty/serial/extended-warranty form fields, warranty reminders (existing
+  ones are cancelled at send time) and the offline page's warranty list. Copy now talks about orders and
+  returns.
+- Nothing was deleted: warranty dates are still computed and stored, and the unit tests still cover the
+  warranty rules with the switch forced on. Planned as **Phase 8 — Warranty tracking** in
+  `IMPLEMENTATION_PLAN.md`, to build only when requested.
+
 ## Next: Phase 7 — Launch

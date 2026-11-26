@@ -7,6 +7,7 @@ import {
   todayInTimeZone,
   type ISODate,
 } from "@/lib/dates";
+import { FEATURES } from "@/lib/features";
 import type { ShippingStatus } from "@/lib/purchases/constants";
 import {
   DELIVERY_CHECK_AFTER_ORDER_DAYS,
@@ -48,6 +49,8 @@ export type PlanInput = {
   timeZone: string;
   reminderHour: number;
   now: Date;
+  /** Warranty reminders (default: FEATURES.warranty; tests pass true). */
+  warranty?: boolean;
 };
 
 export const RETURN_OFFSETS = [7, 3, 1, 0] as const;
@@ -149,7 +152,8 @@ export function planReminders(input: PlanInput): PlannedReminder[] {
   }
 
   // Warranty: W-30/W-7 per item that's still owned (kept or active).
-  if (input.status === "active" || input.status === "kept") {
+  const warranty = input.warranty ?? FEATURES.warranty;
+  if (warranty && (input.status === "active" || input.status === "kept")) {
     for (const item of input.items) {
       if (item.itemStatus !== "active" && item.itemStatus !== "kept") continue;
       const end =

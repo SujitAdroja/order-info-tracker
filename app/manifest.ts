@@ -4,9 +4,9 @@ import type { MetadataRoute } from "next";
 export default function manifest(): MetadataRoute.Manifest {
   return {
     id: "/",
-    name: "KeepTrack — returns & warranties",
+    name: "KeepTrack — orders & returns",
     short_name: "KeepTrack",
-    description: "Never miss a return window or lose warranty proof.",
+    description: "Track your orders and never miss a return window.",
     start_url: "/dashboard",
     scope: "/",
     display: "standalone",

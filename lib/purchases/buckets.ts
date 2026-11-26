@@ -1,4 +1,5 @@
 import type { ISODate } from "@/lib/dates";
+import { FEATURES } from "@/lib/features";
 import {
   expectedDelivery,
   isInTransit,
@@ -6,14 +7,18 @@ import {
 } from "@/lib/purchases/order-stage";
 import type { PurchaseStatus } from "@/lib/purchases/status";
 
-export const DASHBOARD_TABS = [
+const ALL_TABS = [
   "orders",
   "returns",
   "warranty",
   "review",
   "history",
 ] as const;
-export type DashboardTab = (typeof DASHBOARD_TABS)[number];
+export type DashboardTab = (typeof ALL_TABS)[number];
+/** Tabs shown on the dashboard (warranty is behind FEATURES.warranty). */
+export const DASHBOARD_TABS: readonly DashboardTab[] = ALL_TABS.filter(
+  (t) => t !== "warranty" || FEATURES.warranty,
+);
 
 export const DASHBOARD_TAB_LABELS: Record<DashboardTab, string> = {
   orders: "Orders",
@@ -36,7 +41,11 @@ export type BucketablePurchase = StageInput & {
  * persisted `expired` flag, so the dashboard is right even before the daily
  * cleanup job runs. A purchase can be in both Returns and Warranty.
  */
-export function tabsFor(p: BucketablePurchase, today: ISODate): DashboardTab[] {
+export function tabsFor(
+  p: BucketablePurchase,
+  today: ISODate,
+  { warranty = FEATURES.warranty }: { warranty?: boolean } = {},
+): DashboardTab[] {
   const tabs: DashboardTab[] = [];
   const open = p.status === "active" || p.status === "expired";
 
@@ -49,6 +58,7 @@ export function tabsFor(p: BucketablePurchase, today: ISODate): DashboardTab[] {
     tabs.push("returns");
   }
   if (
+    warranty &&
     (open || p.status === "kept") &&
     p.latestWarrantyEnd &&
     p.latestWarrantyEnd >= today
@@ -62,6 +72,7 @@ export function tabsFor(p: BucketablePurchase, today: ISODate): DashboardTab[] {
 export function bucketPurchases<T extends BucketablePurchase>(
   purchases: T[],
   today: ISODate,
+  opts: { warranty?: boolean } = {},
 ): Record<DashboardTab, T[]> {
   const buckets: Record<DashboardTab, T[]> = {
     orders: [],
@@ -71,7 +82,7 @@ export function bucketPurchases<T extends BucketablePurchase>(
     history: [],
   };
   for (const p of purchases) {
-    for (const tab of tabsFor(p, today)) buckets[tab].push(p);
+    for (const tab of tabsFor(p, today, opts)) buckets[tab].push(p);
   }
   // Soonest expected arrival first; unknown dates after, newest order first.
   buckets.orders.sort((a, b) => {

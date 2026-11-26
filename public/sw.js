@@ -192,7 +192,7 @@ function chip(prefix, deadline, today, estimated) {
   return `<span class="chip ${tone}">${prefix}: ${estimated ? "~" : ""}${esc(label)}</span>`;
 }
 
-/** Mirrors lib/purchases/buckets.ts (read-only lists). */
+/** Mirrors lib/purchases/buckets.ts (read-only lists; warranty tab hidden). */
 function renderOffline(data) {
   const sections = [];
   if (data && Array.isArray(data.purchases)) {
@@ -212,14 +212,6 @@ function renderOffline(data) {
     const returns = data.purchases
       .filter((p) => open(p) && p.returnDeadline && p.returnDeadline >= today)
       .sort((a, b) => a.returnDeadline.localeCompare(b.returnDeadline));
-    const warranty = data.purchases
-      .filter(
-        (p) =>
-          (open(p) || p.status === "kept") &&
-          p.latestWarrantyEnd &&
-          p.latestWarrantyEnd >= today,
-      )
-      .sort((a, b) => a.latestWarrantyEnd.localeCompare(b.latestWarrantyEnd));
     const review = data.purchases.filter(
       (p) =>
         p.needsReview && p.status !== "returned" && p.status !== "cancelled",
@@ -248,13 +240,6 @@ function renderOffline(data) {
       sections.push(
         list("Returns closing soon", returns, (p) =>
           chip("Return", p.returnDeadline, today, p.returnDeadlineEstimated),
-        ),
-      );
-    }
-    if (warranty.length) {
-      sections.push(
-        list("Under warranty", warranty, (p) =>
-          chip("Warranty", p.latestWarrantyEnd, today, false),
         ),
       );
     }

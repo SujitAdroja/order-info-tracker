@@ -79,7 +79,7 @@ async function DashboardContent({
           <h2 className="font-medium">Nothing tracked yet</h2>
           <p className="mx-auto mt-1 max-w-sm text-sm text-muted-foreground">
             Forward an order email to your address below, or add a purchase by
-            hand. We&apos;ll track its return window and warranty.
+            hand. We&apos;ll track it until it arrives, then its return window.
           </p>
           <div className="mt-4 flex flex-wrap justify-center gap-2">
             <Link

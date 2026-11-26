@@ -607,12 +607,6 @@ Details per phase are in `PROGRESS.md`. Live at https://order-info-tracker.verce
 - [x] Needs-review flow + review screen
 **Accept:** forwarding each fixture email produces the correct purchase; duplicates merge; raw content is null after processing. 🟡 Verified with synthetic fixtures and real forwarded emails in production; per-store template fixtures pending.
 
-### Phase 4 — Receipts & documents (days 13–15) ⏸ on hold (build only when requested)
-- [ ] Upload endpoint (type/size checks), PDF text extraction, image → LLM vision
-- [ ] Draft review → confirm → save; optional encrypted receipt storage
-- [ ] Signed URL viewing
-**Accept:** a photo and a PDF receipt each produce a reviewable draft; stored files are private.
-
 ### Phase 5 — Reminders & PWA (days 16–20) ✅ (real-device checks pending)
 - [x] Manifest, icons (192/512/maskable), service worker, offline dashboard cache, update prompt — offline page is rendered by the service worker from the saved dashboard JSON
 - [x] Install prompts (Android + iOS instructions)
@@ -663,6 +657,13 @@ To build when this stage starts:
 - [ ] (Separate decision) warranty claims (F8) — currently out of scope
 **Accept:** a kept electronics item shows under "Under warranty" with the right end date, gets W-30/W-7
 reminders, and leaves the tab when its warranty ends or it's returned.
+
+### Phase 4 — Receipts & documents (optional; build only when requested)
+**Status:** on hold — moved to the end on 2026-11-26; we'll decide later whether to build it.
+- [ ] Upload endpoint (type/size checks), PDF text extraction, image → LLM vision
+- [ ] Draft review → confirm → save; optional encrypted receipt storage
+- [ ] Signed URL viewing
+**Accept:** a photo and a PDF receipt each produce a reviewable draft; stored files are private.
 
 ---
 

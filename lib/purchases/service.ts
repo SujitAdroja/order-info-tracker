@@ -20,6 +20,7 @@ import {
   type StatusAction,
 } from "@/lib/purchases/status";
 import type { StorePolicyInfo } from "@/lib/purchases/policy-hint";
+import type { ShippingStatus } from "@/lib/purchases/constants";
 import { regenerateReminders } from "@/lib/reminders/service";
 import type { CurrentUser } from "@/lib/session";
 
@@ -479,6 +480,62 @@ export async function setPurchaseStatus(
   });
 }
 
+/**
+ * Order tracking from the purchase page. "delivered" sets the actual delivery
+ * date (the return window counts from it) and marks it user-edited so later
+ * emails don't change it (EC-DATE-10).
+ */
+export async function setOrderStage(
+  user: CurrentUser,
+  purchaseId: string,
+  stage: ShippingStatus | "delivered",
+  deliveredOn: ISODate | null,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const today = todayInTimeZone(user.timezone);
+  const db = getDb();
+  return db.transaction(async (tx) => {
+    const existing = await findOwnedPurchase(tx, user.id, purchaseId);
+    if (!existing) return { ok: false as const, error: "not_found" };
+
+    if (stage === "delivered") {
+      const date = deliveredOn ?? today;
+      if (date > today)
+        return {
+          ok: false as const,
+          error: "The delivery date can't be in the future.",
+        };
+      if (date < existing.orderDate) {
+        return {
+          ok: false as const,
+          error: "The delivery date can't be before the order date.",
+        };
+      }
+      const edited = new Set([...existing.userEditedFields, "deliveryDate"]);
+      await tx
+        .update(purchases)
+        .set({
+          deliveryDate: date,
+          deliveryDateEstimated: false,
+          userEditedFields: [...edited],
+        })
+        .where(eq(purchases.id, existing.id));
+    } else {
+      await tx
+        .update(purchases)
+        .set({
+          shippingStatus: stage,
+          // Undo a delivery marked by mistake: back to an estimate.
+          ...(existing.deliveryDate && !existing.deliveryDateEstimated
+            ? { deliveryDateEstimated: true }
+            : {}),
+        })
+        .where(eq(purchases.id, existing.id));
+    }
+    await recomputePurchase(tx, existing.id, user.timezone); // deadlines + reminders
+    return { ok: true as const };
+  });
+}
+
 /** Soft delete (Section 11). The row stays for 6.4 dedupe history; UI hides it. */
 export async function softDeletePurchase(
   user: CurrentUser,
@@ -629,6 +686,9 @@ export type PurchaseSummary = {
   returnDeadline: ISODate | null;
   returnDeadlineEstimated: boolean;
   latestWarrantyEnd: ISODate | null;
+  shippingStatus: ShippingStatus;
+  deliveryDate: ISODate | null;
+  deliveryDateEstimated: boolean;
 };
 
 const GONE_ITEM: ReadonlySet<string> = new Set(["returned", "cancelled"]);
@@ -651,6 +711,9 @@ export async function listPurchaseSummaries(
       nonReturnable: true,
       returnDeadline: true,
       returnDeadlineEstimated: true,
+      shippingStatus: true,
+      deliveryDate: true,
+      deliveryDateEstimated: true,
     },
     with: {
       items: {

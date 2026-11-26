@@ -1,6 +1,8 @@
 import type { ISODate } from "@/lib/dates";
 import type { ItemStatus } from "@/lib/deadlines/compute";
 import type { ParsedItem, ParsedOrder } from "@/lib/ingest/types";
+import { laterShippingStatus } from "@/lib/purchases/order-stage";
+import type { ShippingStatus } from "@/lib/purchases/constants";
 
 /**
  * Section 6.4 merge rules, as a pure decision. The DB layer (upsert.ts)
@@ -31,6 +33,7 @@ export const REVIEW_REASON_LABELS: Record<ReviewReason, string> = {
 
 export type ExistingPurchase = {
   status: string;
+  shippingStatus: ShippingStatus;
   orderDate: ISODate;
   deliveryDate: ISODate | null;
   deliveryDateEstimated: boolean;
@@ -45,6 +48,7 @@ export type ExistingPurchase = {
 
 export type PurchaseFields = {
   orderDate?: ISODate;
+  shippingStatus?: ShippingStatus;
   deliveryDate?: ISODate | null;
   deliveryDateEstimated?: boolean;
   currency?: string | null;
@@ -120,10 +124,28 @@ export function looselyMatches(
   );
 }
 
+export type MergeContext = {
+  emailDate: ISODate | null;
+  today: ISODate;
+  /** A "shipped" email that says the parcel is out for delivery today. */
+  outForDelivery?: boolean;
+};
+
+/** Order-tracking stage an email implies (delivered is a delivery date, not a stage). */
+export function shippingStatusFrom(
+  order: ParsedOrder,
+  ctx: MergeContext,
+): ShippingStatus | null {
+  // "Delivered" is the delivery date itself (set below), never a stage here.
+  if (order.email_type === "shipped")
+    return ctx.outForDelivery ? "out_for_delivery" : "shipped";
+  return null;
+}
+
 export function planMerge(
   existing: ExistingPurchase | null,
   order: ParsedOrder,
-  ctx: { emailDate: ISODate | null; today: ISODate },
+  ctx: MergeContext,
 ): MergePlan {
   if (
     order.email_type === "other" ||
@@ -141,10 +163,7 @@ export function planMerge(
   return planUpdate(existing, order, ctx);
 }
 
-function planCreate(
-  order: ParsedOrder,
-  ctx: { emailDate: ISODate | null; today: ISODate },
-): MergePlan {
+function planCreate(order: ParsedOrder, ctx: MergeContext): MergePlan {
   const reasons: ReviewReason[] = [];
   const delivered = order.email_type === "delivered";
   const actualDelivery =
@@ -166,6 +185,7 @@ function planCreate(
     kind: "create",
     fields: {
       orderDate,
+      shippingStatus: shippingStatusFrom(order, ctx) ?? "ordered",
       deliveryDate,
       deliveryDateEstimated: deliveryDate !== null && !actualDelivery,
       currency: order.currency,
@@ -185,7 +205,7 @@ function planCreate(
 function planUpdate(
   existing: ExistingPurchase,
   order: ParsedOrder,
-  ctx: { emailDate: ISODate | null; today: ISODate },
+  ctx: MergeContext,
 ): MergePlan {
   const edited = new Set(existing.userEditedFields);
   const fields: PurchaseFields = {};
@@ -213,6 +233,13 @@ function planUpdate(
   ) {
     fields.returnWindowDays = order.return_window_days_stated;
     fields.returnWindowSource = "email";
+  }
+
+  // Order tracking: shipped / out for delivery only move forward.
+  const stage = shippingStatusFrom(order, ctx);
+  if (stage) {
+    const next = laterShippingStatus(existing.shippingStatus, stage);
+    if (next !== existing.shippingStatus) fields.shippingStatus = next;
   }
 
   // Delivery dates (EC-ING-03, EC-DATE-01).

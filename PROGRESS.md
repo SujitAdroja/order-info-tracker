@@ -291,4 +291,22 @@ Accessibility: axe WCAG 2.1 A/AA checks pass on all public and app pages (`tests
 - **`fflate`** added for the export zip (tiny, no dependencies). **`@axe-core/playwright`** for tests only.
 - Rate limiting is per Postgres row (fixed window) — fine at this scale, no extra service.
 
+## Order tracking ✅ (added on request, 2026-11-26)
+
+Track everything you ordered, from any store or app, until it's delivered.
+
+- **Orders tab** (first on the dashboard): open purchases without a confirmed delivery, soonest expected
+  arrival first. Cards show the stage and ETA ("Shipped · arriving ~28 Nov", "late?" once overdue).
+- **Stages:** Ordered → Shipped → Out for delivery → Delivered. "Delivered" is the actual delivery date
+  (not a separate flag), so the return window and the stage can't disagree. Migration `0004` adds
+  `purchases.shipping_status`.
+- **From emails:** shipped / "out for delivery" emails move the stage forward only (never back); a
+  delivered email sets the delivery date. The classifier no longer treats "will be delivered today" or
+  "arriving" as delivered (that would have started return windows early).
+- **By hand:** "Mark as shipped", "Out for delivery", "Mark as delivered" (asks for the date; the return
+  window counts from it), and "Not delivered yet?" to undo.
+- **"Did your order arrive?" reminder** the day after the expected delivery, or 7 days after ordering if
+  no date is known (`delivery_check`).
+- Tests: `tests/unit/order-stage.test.ts`, merge/classifier/reminder unit tests, `tests/e2e/orders.spec.ts`.
+
 ## Next: Phase 7 — Launch

@@ -34,6 +34,10 @@ export async function regenerateReminders(
       createdAt: true,
       returnDeadline: true,
       nonReturnable: true,
+      orderDate: true,
+      shippingStatus: true,
+      deliveryDate: true,
+      deliveryDateEstimated: true,
     },
     with: {
       items: {

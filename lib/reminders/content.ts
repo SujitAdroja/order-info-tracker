@@ -1,4 +1,5 @@
 import type { ISODate } from "@/lib/dates";
+import { formatMoney } from "@/lib/format";
 import { daysUntil, type ReminderKind } from "@/lib/reminders/schedule";
 
 /** Section 9 "Notification content". Plain text only; never HTML from emails. */
@@ -23,24 +24,6 @@ export type NotificationMessage = {
   actions: { action: "returned" | "kept"; title: string }[];
   purchaseId: string | null;
 };
-
-export function formatMoney(
-  amount: string | null,
-  currency: string | null,
-): string | null {
-  if (amount === null || amount === "") return null;
-  const n = Number(amount);
-  if (!Number.isFinite(n)) return null;
-  try {
-    return new Intl.NumberFormat(currency === "INR" ? "en-IN" : "en", {
-      style: "currency",
-      currency: currency ?? "INR",
-      maximumFractionDigits: n % 1 === 0 ? 0 : 2,
-    }).format(n);
-  } catch {
-    return `${currency ?? ""} ${n}`.trim();
-  }
-}
 
 function inDays(days: number, what: string): string {
   if (days <= 0) return `${what} today`;
@@ -101,6 +84,15 @@ export function reminderMessage(
           : "Confirm the details so we can remind you on time",
         tag: `review-${ctx.purchaseId}`,
       };
+    case "delivery_check":
+      return {
+        ...base,
+        title: "Did your order arrive?",
+        body: body
+          ? `${body} — mark it delivered so we count the return window from the right day`
+          : "Mark it delivered so we count the return window from the right day",
+        tag: `delivery-${ctx.purchaseId}`,
+      };
     case "claim_followup":
       return {
         ...base,
@@ -125,7 +117,8 @@ export function digestMessage(
     const when = m.title
       .replace(/^Return window closes/, "return closes")
       .replace(/^Warranty ends/, "warranty ends")
-      .replace(/^Please check this purchase$/, "needs a check");
+      .replace(/^Please check this purchase$/, "needs a check")
+      .replace(/^Did your order arrive\?$/, "arrived?");
     return `${what}: ${when}`;
   });
   const more = messages.length > 3 ? ` +${messages.length - 3} more` : "";

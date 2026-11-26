@@ -1,7 +1,13 @@
 import type { ISODate } from "@/lib/dates";
+import {
+  expectedDelivery,
+  isInTransit,
+  type StageInput,
+} from "@/lib/purchases/order-stage";
 import type { PurchaseStatus } from "@/lib/purchases/status";
 
 export const DASHBOARD_TABS = [
+  "orders",
   "returns",
   "warranty",
   "review",
@@ -10,14 +16,16 @@ export const DASHBOARD_TABS = [
 export type DashboardTab = (typeof DASHBOARD_TABS)[number];
 
 export const DASHBOARD_TAB_LABELS: Record<DashboardTab, string> = {
+  orders: "Orders",
   returns: "Returns closing soon",
   warranty: "Under warranty",
   review: "Needs review",
   history: "History",
 };
 
-export type BucketablePurchase = {
+export type BucketablePurchase = StageInput & {
   status: PurchaseStatus;
+  orderDate: ISODate;
   needsReview: boolean;
   returnDeadline: ISODate | null;
   latestWarrantyEnd: ISODate | null;
@@ -32,6 +40,8 @@ export function tabsFor(p: BucketablePurchase, today: ISODate): DashboardTab[] {
   const tabs: DashboardTab[] = [];
   const open = p.status === "active" || p.status === "expired";
 
+  // Ordered but not delivered yet, from any store.
+  if (isInTransit(p)) tabs.push("orders");
   if (p.needsReview && p.status !== "returned" && p.status !== "cancelled") {
     tabs.push("review");
   }
@@ -54,6 +64,7 @@ export function bucketPurchases<T extends BucketablePurchase>(
   today: ISODate,
 ): Record<DashboardTab, T[]> {
   const buckets: Record<DashboardTab, T[]> = {
+    orders: [],
     returns: [],
     warranty: [],
     review: [],
@@ -62,6 +73,15 @@ export function bucketPurchases<T extends BucketablePurchase>(
   for (const p of purchases) {
     for (const tab of tabsFor(p, today)) buckets[tab].push(p);
   }
+  // Soonest expected arrival first; unknown dates after, newest order first.
+  buckets.orders.sort((a, b) => {
+    const ea = expectedDelivery(a);
+    const eb = expectedDelivery(b);
+    if (ea && eb && ea !== eb) return ea.localeCompare(eb);
+    if (ea && !eb) return -1;
+    if (!ea && eb) return 1;
+    return b.orderDate.localeCompare(a.orderDate);
+  });
   buckets.returns.sort((a, b) =>
     a.returnDeadline!.localeCompare(b.returnDeadline!),
   );

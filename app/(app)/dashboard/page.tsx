@@ -27,6 +27,8 @@ import { cn } from "@/lib/utils";
 export const metadata: Metadata = { title: "Dashboard" };
 
 const EMPTY: Record<DashboardTab, string> = {
+  orders:
+    "Nothing on its way. Orders show up here until they're delivered — forward the order email or add it by hand.",
   returns: "No return windows open right now.",
   warranty:
     "Nothing under warranty yet. Electronics and appliances show up here.",

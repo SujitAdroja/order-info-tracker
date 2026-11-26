@@ -52,6 +52,7 @@ const order = (over: Partial<ParsedOrder> = {}): ParsedOrder => ({
 
 const existing = (over: Partial<ExistingPurchase> = {}): ExistingPurchase => ({
   status: "active",
+  shippingStatus: "ordered",
   orderDate: "2026-03-01",
   deliveryDate: null,
   deliveryDateEstimated: false,
@@ -494,5 +495,52 @@ describe("Postmark payload", () => {
     expect(skippedAttachments).toBe(1);
     expect(raw.headers.map((h) => h.name)).toEqual(["X-Forwarded-For"]);
     expect(isAutoForwarded(raw)).toBe(true);
+  });
+});
+
+describe("order tracking from emails", () => {
+  const ctx = { emailDate: "2026-03-04", today: "2026-03-05" };
+
+  it("a shipped email advances the stage; out-for-delivery goes further; never backwards", () => {
+    const shipped = planMerge(
+      existing(),
+      order({ email_type: "shipped" }),
+      ctx,
+    );
+    expect(shipped).toMatchObject({
+      kind: "update",
+      fields: { shippingStatus: "shipped" },
+    });
+
+    const ofd = planMerge(
+      existing({ shippingStatus: "shipped" }),
+      order({ email_type: "shipped" }),
+      { ...ctx, outForDelivery: true },
+    );
+    expect(ofd).toMatchObject({
+      fields: { shippingStatus: "out_for_delivery" },
+    });
+
+    const late = planMerge(
+      existing({ shippingStatus: "out_for_delivery" }),
+      order({ email_type: "shipped" }),
+      ctx,
+    );
+    expect(
+      late.kind === "update" && late.fields.shippingStatus,
+    ).toBeUndefined();
+  });
+
+  it("new purchases start at the stage their first email implies", () => {
+    const fromConfirmation = planMerge(null, order(), ctx);
+    expect(fromConfirmation).toMatchObject({
+      kind: "create",
+      fields: { shippingStatus: "ordered" },
+    });
+    const fromShipped = planMerge(null, order({ email_type: "shipped" }), ctx);
+    expect(fromShipped).toMatchObject({
+      kind: "create",
+      fields: { shippingStatus: "shipped" },
+    });
   });
 });

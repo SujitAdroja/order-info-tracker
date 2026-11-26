@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { CountdownChip } from "@/components/purchases/countdown-chip";
+import { OrderStageChip } from "@/components/purchases/order-stage-chip";
 import { StatusBadge } from "@/components/purchases/status-badge";
 import { formatISODate, type ISODate } from "@/lib/dates";
 import { formatMoney } from "@/lib/format";
@@ -39,6 +40,7 @@ export function PurchaseCard({
             .join(" · ")}
         </span>
         <div className="flex flex-wrap gap-2">
+          {tab === "orders" ? <OrderStageChip p={p} today={today} /> : null}
           {showReturn ? (
             <CountdownChip
               kind="return"

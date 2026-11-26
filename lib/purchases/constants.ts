@@ -58,3 +58,14 @@ export const MAX_PURCHASE_AGE_YEARS = 5;
 export const MAX_RETURN_WINDOW_DAYS = 365;
 export const MAX_WARRANTY_MONTHS = 240;
 export const MAX_ITEMS_PER_PURCHASE = 20;
+
+/**
+ * Order tracking (before delivery). "Delivered" isn't stored here: it's a
+ * purchase with an actual (not estimated) delivery date.
+ */
+export const SHIPPING_STATUSES = [
+  "ordered",
+  "shipped",
+  "out_for_delivery",
+] as const;
+export type ShippingStatus = (typeof SHIPPING_STATUSES)[number];

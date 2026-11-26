@@ -5,7 +5,7 @@ import { inboundEmails, users } from "@/lib/db/schema";
 import { addDaysISO, todayInTimeZone, type ISODate } from "@/lib/dates";
 import { decrypt } from "@/lib/crypto";
 import { env, llmEnabled } from "@/lib/env";
-import { classifyEmail } from "@/lib/ingest/classify";
+import { classifyEmail, isOutForDelivery } from "@/lib/ingest/classify";
 import { genericExtract } from "@/lib/ingest/generic-extract";
 import {
   extractGmailCode,
@@ -461,6 +461,9 @@ export async function processInboundEmail(
         today,
         confidence: order.confidence,
         extraReasons,
+        outForDelivery:
+          order.email_type === "shipped" &&
+          isOutForDelivery(original.subject, body),
       });
       if (result.outcome === "ignored") {
         lastIgnoreReason = result.reason;

@@ -124,7 +124,7 @@ test("forwarded order → review draft → delivered merges → cancelled; raw d
     await expect(
       page.locator("dl").getByText("Delivered", { exact: true }),
     ).toBeVisible();
-    await expect(page.getByText("5 Mar 2026")).toBeVisible();
+    await expect(page.getByText("5 Mar 2026", { exact: true })).toBeVisible();
   });
   await expect(page.getByTestId("email-provenance").locator("li")).toHaveCount(
     2,

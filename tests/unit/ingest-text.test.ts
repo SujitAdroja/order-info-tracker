@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { decrypt, encrypt, safeEqual, sha256Hex } from "@/lib/crypto";
-import { classifyEmail } from "@/lib/ingest/classify";
+import { classifyEmail, isOutForDelivery } from "@/lib/ingest/classify";
 import {
   extractGmailCode,
   isGmailVerification,
@@ -305,5 +305,33 @@ describe("redact (Section 6.3)", () => {
     ]) {
       expect(out).toContain(keep);
     }
+  });
+});
+
+describe("classify: delivery promises vs deliveries (order tracking)", () => {
+  it("'will be delivered' / 'arriving' are shipping updates, not deliveries", () => {
+    expect(classifyEmail("Your package will be delivered today", "")).toBe(
+      "shipped",
+    );
+    expect(classifyEmail("Arriving tomorrow: Boat Airdopes", "")).toBe(
+      "shipped",
+    );
+    expect(classifyEmail("Out for delivery: your order 403-1", "")).toBe(
+      "shipped",
+    );
+    expect(classifyEmail("Delivered: your order 403-1", "")).toBe("delivered");
+    expect(classifyEmail("Your package has been delivered", "")).toBe(
+      "delivered",
+    );
+  });
+
+  it("detects out for delivery", () => {
+    expect(isOutForDelivery("Out for delivery", "")).toBe(true);
+    expect(isOutForDelivery("Shipped", "It's arriving today by 9 pm")).toBe(
+      true,
+    );
+    expect(isOutForDelivery("Your order has shipped", "Arriving Friday")).toBe(
+      false,
+    );
   });
 });

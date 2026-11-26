@@ -20,7 +20,11 @@ import {
 } from "drizzle-orm/pg-core";
 import type { AdapterAccountType } from "next-auth/adapters";
 // Relative import: drizzle-kit loads this file outside Next's path aliases.
-import { CATEGORIES, RETURN_WINDOW_SOURCES } from "../purchases/constants";
+import {
+  CATEGORIES,
+  RETURN_WINDOW_SOURCES,
+  SHIPPING_STATUSES,
+} from "../purchases/constants";
 
 const bytea = customType<{ data: Buffer; driverData: Buffer }>({
   dataType: () => "bytea",
@@ -82,6 +86,7 @@ export const REMINDER_KINDS = [
   "warranty",
   "claim_followup",
   "review_needed",
+  "delivery_check",
 ] as const;
 export const CLAIM_STATUSES = [
   "draft",
@@ -317,6 +322,10 @@ export const purchases = pgTable(
     parseConfidence: real("parse_confidence"),
     orderDate: date("order_date").notNull(),
     deliveryDate: date("delivery_date"),
+    /** Order tracking stage until delivered (then delivery_date is actual). */
+    shippingStatus: text("shipping_status", { enum: SHIPPING_STATUSES })
+      .notNull()
+      .default("ordered"),
     deliveryDateEstimated: boolean("delivery_date_estimated")
       .notNull()
       .default(false),
@@ -345,6 +354,10 @@ export const purchases = pgTable(
   (t) => [
     check("purchases_source_check", inList("source", PURCHASE_SOURCES)),
     check("purchases_status_check", inList("status", PURCHASE_STATUSES)),
+    check(
+      "purchases_shipping_status_check",
+      inList("shipping_status", SHIPPING_STATUSES),
+    ),
     check(
       "purchases_return_window_source_check",
       sql`return_window_source is null or ${inList("return_window_source", RETURN_WINDOW_SOURCES)}`,

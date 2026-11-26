@@ -198,6 +198,17 @@ function renderOffline(data) {
   if (data && Array.isArray(data.purchases)) {
     const today = todayIn(data.timezone);
     const open = (p) => p.status === "active" || p.status === "expired";
+    const delivered = (p) => p.deliveryDate && !p.deliveryDateEstimated;
+    const STAGE = {
+      ordered: "Ordered",
+      shipped: "Shipped",
+      out_for_delivery: "Out for delivery",
+    };
+    const orders = data.purchases
+      .filter((p) => open(p) && !delivered(p))
+      .sort((a, b) =>
+        (a.deliveryDate || "9999").localeCompare(b.deliveryDate || "9999"),
+      );
     const returns = data.purchases
       .filter((p) => open(p) && p.returnDeadline && p.returnDeadline >= today)
       .sort((a, b) => a.returnDeadline.localeCompare(b.returnDeadline));
@@ -223,6 +234,16 @@ function renderOffline(data) {
     };
     const list = (title, items, chipFor) =>
       `<h2>${title}</h2><ul>${items.map((p) => card(p, chipFor(p))).join("")}</ul>`;
+    if (orders.length) {
+      sections.push(
+        list("Orders", orders, (p) => {
+          const eta = p.deliveryDate
+            ? ` · arriving ~${fmtDate(p.deliveryDate)}`
+            : "";
+          return `<span class="chip">${esc(STAGE[p.shippingStatus] || "Ordered")}${esc(eta)}</span>`;
+        }),
+      );
+    }
     if (returns.length) {
       sections.push(
         list("Returns closing soon", returns, (p) =>

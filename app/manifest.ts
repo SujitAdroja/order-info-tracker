@@ -36,6 +36,11 @@ export default function manifest(): MetadataRoute.Manifest {
     ],
     shortcuts: [
       {
+        name: "Orders on the way",
+        url: "/dashboard?tab=orders",
+        icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }],
+      },
+      {
         name: "Add a purchase",
         url: "/add",
         icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }],

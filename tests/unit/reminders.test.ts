@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
+import { formatMoney } from "@/lib/format";
 import {
   digestMessage,
-  formatMoney,
   reminderMessage,
   type ReminderContext,
 } from "@/lib/reminders/content";
@@ -22,6 +22,11 @@ const ist = (date: string, time = "10:00") =>
 function input(over: Partial<PlanInput> = {}): PlanInput {
   return {
     status: "active",
+    // Delivered by default; order-tracking tests override these.
+    orderDate: "2026-11-18",
+    shippingStatus: "ordered",
+    deliveryDate: "2026-11-20",
+    deliveryDateEstimated: false,
     needsReview: false,
     createdAt: new Date("2026-11-20T00:00:00Z"),
     returnDeadline: "2026-12-10",
@@ -167,6 +172,72 @@ describe("planReminders — warranty", () => {
     expect(
       planReminders(
         input({ status: "returned", returnDeadline: null, items: [item()] }),
+      ),
+    ).toEqual([]);
+  });
+});
+
+describe("planReminders — did your order arrive?", () => {
+  it("the day after the expected delivery", () => {
+    const rs = planReminders(
+      input({
+        returnDeadline: null,
+        shippingStatus: "shipped",
+        deliveryDate: "2026-11-28",
+        deliveryDateEstimated: true,
+      }),
+    );
+    expect(summary(rs)).toEqual([
+      `delivery_check:D:2026-11-29@${ist("2026-11-29")}`,
+    ]);
+  });
+
+  it("a week after ordering when no date is known; none once delivered", () => {
+    const rs = planReminders(
+      input({
+        returnDeadline: null,
+        orderDate: "2026-11-24",
+        deliveryDate: null,
+      }),
+    );
+    expect(summary(rs)).toEqual([
+      `delivery_check:D:2026-12-01@${ist("2026-12-01")}`,
+    ]);
+    expect(planReminders(input({ returnDeadline: null }))).toEqual([]);
+    expect(
+      planReminders(
+        input({
+          returnDeadline: null,
+          deliveryDate: null,
+          status: "cancelled",
+        }),
+      ),
+    ).toEqual([]);
+  });
+
+  it("overdue: asks at the next run, not again for an old date", () => {
+    const now = new Date(ist("2026-11-25", "15:00"));
+    const rs = planReminders(
+      input({
+        returnDeadline: null,
+        deliveryDate: "2026-11-24",
+        deliveryDateEstimated: true,
+        now,
+      }),
+    );
+    // Check date (Nov 25) is today and its hour passed → now.
+    expect(summary(rs)).toEqual([
+      `delivery_check:D:2026-11-25@${now.toISOString()}`,
+    ]);
+    // Two days later the check date is in the past → nothing new is planned.
+    expect(
+      planReminders(
+        input({
+          returnDeadline: null,
+          deliveryDate: "2026-11-24",
+          deliveryDateEstimated: true,
+          now: new Date(ist("2026-11-27", "15:00")),
+        }),
       ),
     ).toEqual([]);
   });

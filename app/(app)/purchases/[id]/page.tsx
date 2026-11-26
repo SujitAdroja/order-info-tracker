@@ -7,6 +7,7 @@ import { z } from "zod";
 import { CountdownChip } from "@/components/purchases/countdown-chip";
 import { DeletePurchaseButton } from "@/components/purchases/delete-purchase-button";
 import { EmailProvenance } from "@/components/purchases/email-provenance";
+import { OrderProgress } from "@/components/purchases/order-progress";
 import { ReviewCallout } from "@/components/purchases/review-callout";
 import { StatusActions } from "@/components/purchases/status-actions";
 import { StatusBadge } from "@/components/purchases/status-badge";
@@ -20,6 +21,7 @@ import {
   type PurchaseDetail,
 } from "@/lib/purchases/service";
 import { getCurrentUser } from "@/lib/session";
+import { expectedDelivery, orderStage } from "@/lib/purchases/order-stage";
 
 export const metadata: Metadata = { title: "Purchase" };
 
@@ -85,6 +87,19 @@ async function PurchaseContent({
           reasons={[
             ...new Set([...p.reviewReasons, ...p.computed.reviewReasons]),
           ]}
+        />
+      ) : null}
+
+      {p.status !== "returned" && p.status !== "cancelled" ? (
+        <OrderProgress
+          purchaseId={p.id}
+          stage={orderStage(p)}
+          orderDate={p.orderDate}
+          expected={expectedDelivery(p)}
+          deliveredOn={
+            p.deliveryDate && !p.deliveryDateEstimated ? p.deliveryDate : null
+          }
+          today={p.today}
         />
       ) : null}
 

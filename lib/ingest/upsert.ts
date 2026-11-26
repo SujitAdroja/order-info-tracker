@@ -82,6 +82,7 @@ export async function applyOrder(
     today: ISODate;
     confidence: number;
     extraReasons: ReviewReason[];
+    outForDelivery?: boolean;
   },
 ): Promise<ApplyResult> {
   return db.transaction(async (tx) => {
@@ -96,6 +97,7 @@ export async function applyOrder(
     const existing: ExistingPurchase | null = existingRow
       ? {
           status: existingRow.status,
+          shippingStatus: existingRow.shippingStatus,
           orderDate: existingRow.orderDate,
           deliveryDate: existingRow.deliveryDate,
           deliveryDateEstimated: existingRow.deliveryDateEstimated,
@@ -112,6 +114,7 @@ export async function applyOrder(
     const plan = planMerge(existing, order, {
       emailDate: args.emailDate,
       today: args.today,
+      outForDelivery: args.outForDelivery,
     });
     if (plan.kind === "ignore")
       return { outcome: "ignored", reason: plan.reason };
@@ -139,6 +142,7 @@ export async function applyOrder(
           source: "email",
           parseConfidence: args.confidence,
           orderDate: plan.fields.orderDate,
+          shippingStatus: plan.fields.shippingStatus ?? "ordered",
           deliveryDate: plan.fields.deliveryDate,
           deliveryDateEstimated: plan.fields.deliveryDateEstimated,
           externalOrderId: plan.fields.externalOrderId ?? null,

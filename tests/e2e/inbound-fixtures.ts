@@ -63,6 +63,27 @@ export function deliveredNotice(to: string, orderId: string) {
   });
 }
 
+/** Auto-forwarded shipping update; `outForDelivery` for the last-mile email. */
+export function shippedNotice(
+  to: string,
+  orderId: string,
+  outForDelivery = false,
+) {
+  return base(to, {
+    From: "shipment-tracking@amazon.in",
+    FromFull: { Email: "shipment-tracking@amazon.in", Name: "Amazon.in" },
+    Subject: outForDelivery
+      ? `Out for delivery: your order ${orderId}`
+      : `Shipped: your order ${orderId}`,
+    Date: "Wed, 04 Mar 2026 09:00:00 +0530",
+    Headers: [{ Name: "X-Forwarded-For", Value: `me@gmail.example ${to}` }],
+    TextBody: outForDelivery
+      ? `Your package is out for delivery and arriving today.\nOrder ID: ${orderId}`
+      : `Your package has shipped.\nOrder ID: ${orderId}\nArriving by 6 March 2026`,
+    HtmlBody: null,
+  });
+}
+
 export function cancellation(to: string, orderId: string) {
   return base(to, {
     From: "auto-confirm@amazon.in",

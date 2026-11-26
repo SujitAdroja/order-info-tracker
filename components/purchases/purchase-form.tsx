@@ -138,7 +138,7 @@ export function PurchaseForm({
             id="deliveryDate"
             label="Delivery date"
             error={errors.deliveryDate}
-            hint="Blank if not delivered yet. A future date counts as expected delivery."
+            hint="Not arrived yet? Leave blank (or enter the expected date) and it shows under Orders until it's delivered."
           >
             <Input
               id="deliveryDate"

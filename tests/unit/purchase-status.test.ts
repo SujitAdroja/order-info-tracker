@@ -65,12 +65,49 @@ describe("derivePurchaseStatus (EC-DATE-11)", () => {
 
 describe("dashboard tabs", () => {
   const today = "2026-03-10";
+  // Delivered by default; order-tracking cases override the delivery fields.
   const p = (over: Partial<BucketablePurchase>): BucketablePurchase => ({
     status: "active",
     needsReview: false,
     returnDeadline: null,
     latestWarrantyEnd: null,
+    orderDate: "2026-03-01",
+    shippingStatus: "ordered",
+    deliveryDate: "2026-03-03",
+    deliveryDateEstimated: false,
     ...over,
+  });
+
+  it("not delivered yet → Orders (and still Returns while the estimate is open)", () => {
+    expect(tabsFor(p({ deliveryDate: null }), today)).toEqual(["orders"]);
+    expect(
+      tabsFor(
+        p({
+          shippingStatus: "shipped",
+          deliveryDate: "2026-03-12",
+          deliveryDateEstimated: true,
+          returnDeadline: "2026-03-22",
+        }),
+        today,
+      ),
+    ).toEqual(["orders", "returns"]);
+    // Delivered, cancelled or returned → not in Orders.
+    expect(
+      tabsFor(p({ status: "cancelled", deliveryDate: null }), today),
+    ).toEqual(["history"]);
+  });
+
+  it("sorts Orders by expected arrival, unknown dates last (newest first)", () => {
+    const soon = p({ deliveryDate: "2026-03-11", deliveryDateEstimated: true });
+    const later = p({
+      deliveryDate: "2026-03-15",
+      deliveryDateEstimated: true,
+    });
+    const unknownOld = p({ deliveryDate: null, orderDate: "2026-02-01" });
+    const unknownNew = p({ deliveryDate: null, orderDate: "2026-03-08" });
+    expect(
+      bucketPurchases([unknownOld, later, unknownNew, soon], today).orders,
+    ).toEqual([soon, later, unknownNew, unknownOld]);
   });
 
   it("open return window → Returns; also warranty → both tabs", () => {

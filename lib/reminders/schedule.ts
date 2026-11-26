@@ -7,13 +7,20 @@ import {
   todayInTimeZone,
   type ISODate,
 } from "@/lib/dates";
+import type { ShippingStatus } from "@/lib/purchases/constants";
+import {
+  DELIVERY_CHECK_AFTER_ORDER_DAYS,
+  expectedDelivery,
+  isInTransit,
+} from "@/lib/purchases/order-stage";
 
 /**
  * Section 9: which reminders a purchase should have, and when. Pure — the
  * caller supplies `now`, so every rule is unit-testable across timezones.
  */
 
-export type ReminderKind = "return" | "warranty" | "review_needed";
+export type ReminderKind =
+  "return" | "warranty" | "review_needed" | "delivery_check";
 
 export type PlannedReminder = {
   kind: ReminderKind;
@@ -24,6 +31,10 @@ export type PlannedReminder = {
 
 export type PlanInput = {
   status: string; // purchase status
+  orderDate: ISODate;
+  shippingStatus: ShippingStatus;
+  deliveryDate: ISODate | null;
+  deliveryDateEstimated: boolean;
   needsReview: boolean;
   createdAt: Date;
   returnDeadline: ISODate | null;
@@ -158,6 +169,25 @@ export function planReminders(input: PlanInput): PlannedReminder[] {
           });
         }
       }
+    }
+  }
+
+  // Order tracking: "Did your order arrive?" the day after the expected
+  // delivery, or a week after ordering when no date is known. Confirming the
+  // delivery date matters: the return window starts from it.
+  if (isInTransit(input)) {
+    const expected = expectedDelivery(input);
+    const checkOn = expected
+      ? addDaysISO(expected, 1)
+      : addDaysISO(input.orderDate, DELIVERY_CHECK_AFTER_ORDER_DAYS);
+    const at = scheduleOn(checkOn, input, today, null);
+    if (at) {
+      out.push({
+        kind: "delivery_check",
+        offsetLabel: `D:${checkOn}`,
+        itemId: null,
+        sendAt: at,
+      });
     }
   }
 

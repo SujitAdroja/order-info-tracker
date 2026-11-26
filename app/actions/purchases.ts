@@ -1,5 +1,6 @@
 "use server";
 
+import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import {
@@ -9,11 +10,13 @@ import {
 } from "@/lib/purchases/input";
 import {
   confirmPurchaseReview,
+  setOrderStage,
   createManualPurchase,
   setPurchaseStatus,
   softDeletePurchase,
   updatePurchase,
 } from "@/lib/purchases/service";
+import { SHIPPING_STATUSES } from "@/lib/purchases/constants";
 import { STATUS_ACTIONS, type StatusAction } from "@/lib/purchases/status";
 import { getCurrentUser } from "@/lib/session";
 
@@ -82,4 +85,32 @@ export async function confirmPurchaseAction(purchaseId: string) {
     await confirmPurchaseReview(user, purchaseId);
   }
   redirect(`/purchases/${purchaseId}`);
+}
+
+const orderStageSchema = z.object({
+  purchaseId: idSchema,
+  stage: z.enum([...SHIPPING_STATUSES, "delivered"]),
+  deliveredOn: z.iso.date().nullable(),
+});
+
+export type OrderStageResult = { ok: true } | { ok: false; error: string };
+
+/** Order tracking buttons on the purchase page. */
+export async function setOrderStageAction(
+  input: unknown,
+): Promise<OrderStageResult> {
+  const user = await getCurrentUser();
+  const parsed = orderStageSchema.safeParse(input);
+  if (!parsed.success)
+    return { ok: false, error: "Please check the date and try again." };
+  const { purchaseId, stage, deliveredOn } = parsed.data;
+  const res = await setOrderStage(user, purchaseId, stage, deliveredOn);
+  if (!res.ok) {
+    return {
+      ok: false,
+      error: res.error === "not_found" ? "Purchase not found." : res.error,
+    };
+  }
+  refresh();
+  return { ok: true };
 }

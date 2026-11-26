@@ -11,6 +11,7 @@ import {
   type NotificationMessage,
   type ReminderContext,
 } from "@/lib/reminders/content";
+import { isInTransit } from "@/lib/purchases/order-stage";
 import { isQuietHour, shiftOutOfQuietHours } from "@/lib/reminders/schedule";
 
 export const SEND_BATCH = 500;
@@ -139,6 +140,9 @@ export async function sendDueReminders(
           break;
         case "review_needed":
           valid = p.needsReview && p.status !== "cancelled";
+          break;
+        case "delivery_check":
+          valid = isInTransit(p); // EC-PUSH-06: delivered/cancelled → drop
           break;
         default:
           valid = false; // claim_followup: built with Phase 6 claims (Section 9)

@@ -85,9 +85,14 @@ export const envSchema = z
         .optional(),
     ),
 
+    // EC-SEC-04: sign-in emails per network per hour (tests raise it).
+    SIGNIN_IP_LIMIT_PER_HOUR: intFromString(20),
+
     // Cron + errors
     CRON_SECRET: optionalString,
     SENTRY_DSN: optionalString,
+    // Shown on the Privacy/Terms pages (set before inviting other people).
+    CONTACT_EMAIL: optionalString.pipe(z.email().optional()),
 
     // Dev/test only: write magic links to this folder instead of sending.
     E2E_MAGIC_LINK_DIR: optionalString,

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Suspense } from "react";
 import { AuthCard } from "@/components/auth/auth-card";
 import { EmailSignInForm } from "@/components/auth/email-sign-in-form";
@@ -13,11 +14,22 @@ export default function LoginPage({ searchParams }: PageProps<"/login">) {
   return (
     <AuthCard
       title="Log in or sign up"
-      description="We'll email you a link to sign in. No password needed."
+      description="We'll email you a sign-in code and link. No password needed."
     >
       <Suspense fallback={<EmailSignInForm />}>
         <SignInOptions searchParams={searchParams} />
       </Suspense>
+      <p className="text-xs text-muted-foreground">
+        By continuing you agree to the{" "}
+        <Link href="/terms" className="underline underline-offset-4">
+          Terms
+        </Link>{" "}
+        and{" "}
+        <Link href="/privacy" className="underline underline-offset-4">
+          Privacy
+        </Link>{" "}
+        pages.
+      </p>
     </AuthCard>
   );
 }

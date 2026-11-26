@@ -178,9 +178,11 @@ export const forwardingAddresses = pgTable(
   "forwarding_addresses",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    userId: uuid("user_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
+    // Null once the account is deleted: the row stays as a tombstone so the
+    // local part is never reassigned (EC-ACC-04), with no link to the person.
+    userId: uuid("user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
     // Unique forever: local parts are never reassigned (EC-ACC-04).
     localPart: text("local_part").notNull().unique(),
     active: boolean("active").notNull().default(true),
@@ -530,6 +532,16 @@ export const auditLog = pgTable(
   },
   (t) => [index("audit_log_user_id_idx").on(t.userId)],
 );
+
+/**
+ * EC-SEC-04: fixed-window counters (sign-in emails, code attempts, exports,
+ * address changes). Keys never contain raw emails or IPs — they're hashed.
+ */
+export const rateLimits = pgTable("rate_limits", {
+  key: text("key").primaryKey(),
+  windowStart: timestamp("window_start", { withTimezone: true }).notNull(),
+  count: integer("count").notNull(),
+});
 
 // ---------------------------------------------------------------------------
 // Relations (for nested `with` queries)

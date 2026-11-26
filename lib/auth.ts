@@ -7,6 +7,7 @@ import NextAuth, { type NextAuthConfig } from "next-auth";
 import type { Provider } from "next-auth/providers";
 import Google from "next-auth/providers/google";
 import Resend from "next-auth/providers/resend";
+import { audit } from "@/lib/audit";
 import { getDb } from "@/lib/db";
 import { accounts, sessions, users, verificationTokens } from "@/lib/db/schema";
 import { appUrl, escapeHtml, sendEmail } from "@/lib/email/send";
@@ -128,6 +129,17 @@ function buildConfig(): NextAuthConfig {
       // F1 step 2: every new account gets a forwarding address immediately.
       async createUser({ user }) {
         if (user.id) await ensureForwardingAddress(user.id);
+      },
+      async signIn({ user, account }) {
+        if (user.id) {
+          await audit(user.id, "auth.sign_in", {
+            method: account?.provider ?? null,
+          });
+        }
+      },
+      async signOut(message) {
+        const userId = "session" in message ? message.session?.userId : null;
+        if (userId) await audit(userId, "auth.sign_out");
       },
     },
     logger: {

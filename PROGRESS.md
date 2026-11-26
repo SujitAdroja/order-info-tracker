@@ -254,4 +254,41 @@ Android Chrome and on an installed iOS PWA (16.4+). These need HTTPS (deploy or 
 - Claim follow-up reminders → Phase 6 claims.
 - `TODO EC-SEC-04` rate limits → Phase 6.
 
-## Next: Phase 6 — Claims, export, delete, polish
+## Deployment (2026-11-25)
+
+- **Production:** https://order-info-tracker.vercel.app (Vercel Hobby, functions in `sin1`).
+- **Database:** Neon (free, Singapore) via the Vercel Marketplace; migrations run with `DATABASE_URL_UNPOOLED`.
+- **Inbound:** Resend receiving webhook → `/api/inbound/email`.
+- **Scheduler:** Vercel runs only the daily cleanup (Hobby allows once a day). cron-job.org calls
+  `/api/cron/reminders` (15 min) and `/api/cron/retry` (5 min) with `x-cron-secret`.
+- **Sign-in by code:** email links open in the browser, not the installed app (iOS keeps separate
+  cookies), so the email also carries an 8-character code (single use, 15 minutes).
+
+## Phase 6 — Export, delete, polish ✅ (warranty claims removed from scope)
+
+**Acceptance:** the full journey test passes (sign up → email → purchase → returned → reminders
+cancelled → export → delete) and deletion leaves no rows for the user (`tests/e2e/account.spec.ts`).
+Accessibility: axe WCAG 2.1 A/AA checks pass on all public and app pages (`tests/e2e/a11y.spec.ts`).
+
+### Built
+
+| Item                                                                                                              | Where                                                                 |
+| ----------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| Export zip (JSON + CSV, CSV-injection safe), 10/day                                                               | `lib/account.ts`, `lib/csv.ts`, `app/api/me/export`                   |
+| Delete account: hard delete + cascade, address kept as an unlinked tombstone (never reused)                       | `lib/account.ts`, migration `0003`                                    |
+| New forwarding address (old one works 7 more days), 3/day                                                         | `lib/account.ts`, `components/settings/regenerate-address-button.tsx` |
+| Rate limits in Postgres (hashed keys): sign-in emails 5/h per address + 20/h per network, code attempts 10/15 min | `lib/rate-limit.ts`                                                   |
+| Audit log: sign-in/out, export, delete, address change, settings, push on/off                                     | `lib/audit.ts`                                                        |
+| Currency in Settings; error/404/global-error pages; skip link                                                     | `app/(app)/error.tsx`, `app/not-found.tsx`, `app/global-error.tsx`    |
+| Privacy and Terms pages (plain language)                                                                          | `app/(marketing)/privacy`, `app/(marketing)/terms`                    |
+
+### Decisions (please review)
+
+- **Warranty claims (F8) are out of scope** at your request: no claim screens, drafts or follow-ups.
+- **Privacy/Terms are a plain-language draft, not legal advice.** Set `CONTACT_EMAIL` and have them
+  reviewed before inviting other people.
+- **Sentry not added:** it needs an account and DSN. Errors go to Vercel logs (codes only).
+- **`fflate`** added for the export zip (tiny, no dependencies). **`@axe-core/playwright`** for tests only.
+- Rate limiting is per Postgres row (fixed window) — fine at this scale, no extra service.
+
+## Next: Phase 7 — Launch

@@ -52,7 +52,7 @@ const hourIn = (tz: string) =>
       hourCycle: "h23",
     }).format(new Date()),
   );
-const TZ = ZONES.find((z) => hourIn(z) >= 12 && hourIn(z) <= 18) ?? "UTC";
+const TZ = ZONES.find((z) => hourIn(z) >= 12 && hourIn(z) <= 17) ?? "UTC";
 test.use({ timezoneId: TZ });
 const today = () => todayInTimeZone(TZ);
 
@@ -229,9 +229,12 @@ test("push: delivered to every device, digest for several, expired device remove
   const a = await addPurchase(page, "Kettle", 9, 10); // closes tomorrow
   const b = await addPurchase(page, "Headphones", 10, 10); // closes today
 
-  await request.get("/api/cron/reminders", { headers: CRON });
+  // Run the sender until it has handled this user's due reminders.
   await expect
-    .poll(async () => (await remindersOf(a))[0].channel_used)
+    .poll(async () => {
+      await request.get("/api/cron/reminders", { headers: CRON });
+      return (await remindersOf(a))[0].channel_used;
+    })
     .toBe("push");
   expect((await remindersOf(b))[0].channel_used).toBe("push");
 
@@ -309,7 +312,7 @@ test("settings: reminder hour change reschedules (EC-DATE-08); notification and 
 
   await page.getByLabel("Send reminders at").selectOption("18");
   await page.getByRole("button", { name: "Save" }).click();
-  await expect(page.getByText("Reminder settings saved")).toBeVisible();
+  await expect(page.getByText("Settings saved")).toBeVisible();
 
   const sql = db();
   try {

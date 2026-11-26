@@ -1,5 +1,7 @@
 import { InboxIcon, BellRingIcon, ShieldCheckIcon } from "lucide-react";
 import Link from "next/link";
+import { Suspense } from "react";
+import { SiteFooter } from "@/components/marketing/site-footer";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -7,7 +9,7 @@ const STEPS = [
   {
     icon: InboxIcon,
     title: "Forward the order emails you choose",
-    body: "Each account gets a private forwarding address. Send it an order confirmation, or upload a receipt.",
+    body: "Each account gets a private forwarding address. Send it an order confirmation, or add a purchase by hand.",
   },
   {
     icon: BellRingIcon,
@@ -21,9 +23,12 @@ const STEPS = [
   },
 ] as const;
 
-export default function LandingPage() {
+export default function LandingPage({ searchParams }: PageProps<"/">) {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-5 py-10 sm:py-16">
+      <Suspense fallback={null}>
+        <AccountDeletedNotice searchParams={searchParams} />
+      </Suspense>
       <header className="flex items-center justify-between">
         <span className="text-lg font-semibold tracking-tight">KeepTrack</span>
         <Link href="/login" className={buttonVariants({ variant: "ghost" })}>
@@ -83,6 +88,25 @@ export default function LandingPage() {
           <li>See everything we stored, and delete it all in one tap.</li>
         </ul>
       </section>
+
+      <SiteFooter />
     </main>
+  );
+}
+
+async function AccountDeletedNotice({
+  searchParams,
+}: {
+  searchParams: PageProps<"/">["searchParams"];
+}) {
+  const { account } = await searchParams;
+  if (account !== "deleted") return null;
+  return (
+    <p
+      role="status"
+      className="mb-8 rounded-lg border bg-muted/50 px-4 py-3 text-sm"
+    >
+      Your account and all its data have been deleted.
+    </p>
   );
 }

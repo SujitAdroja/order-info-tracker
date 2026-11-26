@@ -5,6 +5,14 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { signIn, signOut } from "@/lib/auth";
 import { googleAuthEnabled } from "@/lib/env";
+import {
+  clientIp,
+  consume,
+  LIMITS,
+  minutesText,
+  rateKey,
+  signInIpLimit,
+} from "@/lib/rate-limit";
 import { safeCallbackUrl } from "@/lib/safe-redirect";
 import { normalizeSignInCode } from "@/lib/sign-in-code";
 import { readPendingSignIn, setPendingSignIn } from "@/lib/sign-in-pending";
@@ -31,7 +39,26 @@ export async function signInWithEmail(
     };
   }
 
-  // TODO EC-SEC-04: rate-limit magic link requests per email/IP (Phase 6, lib/rateLimit.ts).
+  // EC-SEC-04: limit sign-in emails per address and per network.
+  const byEmail = await consume(
+    rateKey("signin-email", parsed.data.email),
+    LIMITS.signInEmailPerAddress,
+  );
+  const byIp = await consume(
+    rateKey("signin-ip", await clientIp()),
+    signInIpLimit(),
+  );
+  if (!byEmail.ok || !byIp.ok) {
+    const wait = Math.max(
+      byEmail.ok ? 0 : byEmail.retryAfterSeconds,
+      byIp.ok ? 0 : byIp.retryAfterSeconds,
+    );
+    return {
+      error: `Too many sign-in emails. Please try again in ${minutesText(wait)}.`,
+      email: parsed.data.email,
+    };
+  }
+
   const callbackUrl = safeCallbackUrl(parsed.data.callbackUrl);
   try {
     // redirect: false — otherwise Auth.js sends the browser to
@@ -70,6 +97,15 @@ export async function verifySignInCode(
   const pending = await readPendingSignIn();
   if (!pending) {
     return { error: "This sign-in has expired. Please request a new code." };
+  }
+  const attempts = await consume(
+    rateKey("signin-code", pending.email),
+    LIMITS.signInCodeAttempts,
+  );
+  if (!attempts.ok) {
+    return {
+      error: `Too many attempts. Please wait ${minutesText(attempts.retryAfterSeconds)} or request a new code.`,
+    };
   }
   const code = normalizeSignInCode(String(formData.get("code") ?? ""));
   if (!code) {

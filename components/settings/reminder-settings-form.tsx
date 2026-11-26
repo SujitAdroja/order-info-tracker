@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { updateReminderSettingsAction } from "@/app/actions/notifications";
 import { OnlineButton } from "@/components/pwa/online-button";
 import { Label } from "@/components/ui/label";
+import { CURRENCIES } from "@/lib/purchases/constants";
 
 const HOURS = Array.from({ length: 14 }, (_, i) => i + 8); // 08:00–21:00 (quiet hours excluded)
 
@@ -18,7 +19,7 @@ function hourLabel(h: number) {
   });
 }
 
-/** Settings → Reminders (F9). Changing hour or timezone reschedules (EC-DATE-08). */
+/** Settings → Reminders & preferences (F9). Hour/timezone changes reschedule (EC-DATE-08). */
 export function ReminderSettingsForm({
   initial,
 }: {
@@ -26,6 +27,7 @@ export function ReminderSettingsForm({
     reminderHour: number;
     timezone: string;
     emailRemindersEnabled: boolean;
+    defaultCurrency: string;
   };
 }) {
   const [values, setValues] = useState(initial);
@@ -40,7 +42,8 @@ export function ReminderSettingsForm({
   const dirty =
     values.reminderHour !== initial.reminderHour ||
     values.timezone !== initial.timezone ||
-    values.emailRemindersEnabled !== initial.emailRemindersEnabled;
+    values.emailRemindersEnabled !== initial.emailRemindersEnabled ||
+    values.defaultCurrency !== initial.defaultCurrency;
 
   return (
     <form
@@ -49,7 +52,7 @@ export function ReminderSettingsForm({
         e.preventDefault();
         startTransition(async () => {
           const res = await updateReminderSettingsAction(values);
-          if (res.ok) toast.success("Reminder settings saved");
+          if (res.ok) toast.success("Settings saved");
           else toast.error(res.error);
         });
       }}
@@ -83,6 +86,23 @@ export function ReminderSettingsForm({
             {zones.map((z) => (
               <option key={z} value={z}>
                 {z.replace(/_/g, " ")}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="grid gap-2">
+          <Label htmlFor="currency">Default currency</Label>
+          <select
+            id="currency"
+            className={selectClass}
+            value={values.defaultCurrency}
+            onChange={(e) =>
+              setValues({ ...values, defaultCurrency: e.target.value })
+            }
+          >
+            {CURRENCIES.map((c) => (
+              <option key={c} value={c}>
+                {c}
               </option>
             ))}
           </select>

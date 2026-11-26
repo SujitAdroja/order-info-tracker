@@ -13,6 +13,8 @@ import {
 } from "@/lib/push/send";
 import { regenerateUserReminders } from "@/lib/reminders/service";
 import { clampReminderHour } from "@/lib/reminders/schedule";
+import { audit } from "@/lib/audit";
+import { CURRENCIES } from "@/lib/purchases/constants";
 import { getCurrentUser } from "@/lib/session";
 import { timezoneSchema } from "@/lib/users";
 
@@ -67,6 +69,7 @@ export async function subscribePushAction(
       },
     });
   await syncPushEnabled(user.id);
+  await audit(user.id, "push.subscribe");
   return { ok: true };
 }
 
@@ -85,6 +88,7 @@ export async function unsubscribePushAction(
       ),
     );
   await syncPushEnabled(user.id);
+  await audit(user.id, "push.unsubscribe");
   return { ok: true };
 }
 
@@ -117,9 +121,10 @@ const settingsSchema = z.object({
   reminderHour: z.coerce.number().int().min(0).max(23),
   timezone: timezoneSchema,
   emailRemindersEnabled: z.boolean(),
+  defaultCurrency: z.enum(CURRENCIES),
 });
 
-/** Reminder hour / timezone / email fallback. Reschedules reminders (EC-DATE-08). */
+/** Reminder hour / timezone / email fallback / currency. Reschedules reminders (EC-DATE-08). */
 export async function updateReminderSettingsAction(
   input: unknown,
 ): Promise<ActionResult> {
@@ -127,7 +132,7 @@ export async function updateReminderSettingsAction(
   const parsed = settingsSchema.safeParse(input);
   if (!parsed.success)
     return { ok: false, error: "Please check the values and try again." };
-  const { timezone, emailRemindersEnabled } = parsed.data;
+  const { timezone, emailRemindersEnabled, defaultCurrency } = parsed.data;
   const reminderHour = clampReminderHour(parsed.data.reminderHour);
 
   await getDb()
@@ -136,12 +141,14 @@ export async function updateReminderSettingsAction(
       reminderHour,
       timezone,
       emailRemindersEnabled,
+      defaultCurrency,
       timezoneDetected: true,
     })
     .where(eq(users.id, user.id));
   if (reminderHour !== user.reminderHour || timezone !== user.timezone) {
     await regenerateUserReminders(user.id);
   }
+  await audit(user.id, "settings.update");
   refresh();
   return { ok: true };
 }

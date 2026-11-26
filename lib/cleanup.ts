@@ -3,11 +3,13 @@ import { and, eq, inArray, isNull, lt, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import { inboundEmails, purchases, users } from "@/lib/db/schema";
 import { recomputePurchase } from "@/lib/purchases/service";
+import { purgeOldRateLimits } from "@/lib/rate-limit";
 
 /**
  * Daily cleanup (Section 4 `/api/cron/cleanup`):
  * - EC-ACC-07: hard-delete raw email content older than 24h, whatever its status.
  * - Expire Gmail verification codes after 7 days.
+ * - Drop expired rate-limit windows (EC-SEC-04).
  * - Section 8 status auto-update + store-policy changes: recompute every
  *   open purchase (active / kept / expired).
  */
@@ -48,5 +50,11 @@ export async function runDailyCleanup() {
     );
   for (const p of open) await recomputePurchase(db, p.id, p.timezone);
 
-  return { rawPurged: purged.length, recomputed: open.length };
+  const rateLimitsPurged = await purgeOldRateLimits();
+
+  return {
+    rawPurged: purged.length,
+    recomputed: open.length,
+    rateLimitsPurged,
+  };
 }

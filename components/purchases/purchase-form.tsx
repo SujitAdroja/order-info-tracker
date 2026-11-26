@@ -247,7 +247,7 @@ export function PurchaseForm({
             onClick={() => set("items", [...values.items, emptyItem()])}
           >
             <PlusIcon aria-hidden />
-            Add another item
+            {values.items.length ? "Add another item" : "Add an item"}
           </Button>
         ) : null}
       </fieldset>

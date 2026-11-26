@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { CopyButton } from "@/components/copy-button";
 import {
   Card,
@@ -7,7 +8,14 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-export function ForwardingAddressCard({ address }: { address: string }) {
+export function ForwardingAddressCard({
+  address,
+  footer,
+}: {
+  address: string;
+  /** Extra controls under the address (Settings: "Get a new address"). */
+  footer?: ReactNode;
+}) {
   return (
     <Card>
       <CardHeader>
@@ -26,6 +34,7 @@ export function ForwardingAddressCard({ address }: { address: string }) {
         </code>
         <CopyButton value={address} label="Copy address" />
       </CardContent>
+      {footer ? <CardContent>{footer}</CardContent> : null}
     </Card>
   );
 }

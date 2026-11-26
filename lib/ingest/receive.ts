@@ -123,7 +123,8 @@ export async function receiveInbound(
         columns: { userId: true },
       })
     : null;
-  const owner = address
+  // A retired address (deleted account) has no user: ignored like an unknown one.
+  const owner = address?.userId
     ? await db.query.users.findFirst({
         where: and(eq(users.id, address.userId), isNull(users.deletedAt)),
         columns: { id: true },

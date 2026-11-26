@@ -64,6 +64,8 @@ export default defineConfig({
         VAPID_PUBLIC_KEY: vapid.publicKey,
         VAPID_PRIVATE_KEY: vapid.privateKey,
         VAPID_SUBJECT: "mailto:e2e@example.test",
+        // Every test signs up from localhost.
+        SIGNIN_IP_LIMIT_PER_HOUR: "100000",
         // Force plan B (no LLM) so tests are deterministic and never spend money.
         ANTHROPIC_API_KEY: "",
       },

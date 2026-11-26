@@ -9,6 +9,13 @@ import { getCurrentUser } from "@/lib/session";
 export default function AppLayout({ children }: LayoutProps<"/">) {
   return (
     <div className="flex flex-1 flex-col">
+      {/* Keyboard users can jump past the navigation. */}
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[60] focus:rounded-md focus:bg-background focus:px-3 focus:py-2 focus:shadow"
+      >
+        Skip to content
+      </a>
       <OfflineBanner />
       <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/80">
         <div className="mx-auto flex h-14 w-full max-w-3xl items-center justify-between px-5">
@@ -20,7 +27,11 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
       </header>
 
       {/* Bottom padding clears the mobile tab bar. */}
-      <main className="mx-auto w-full max-w-3xl flex-1 px-5 pt-6 pb-28 md:pb-12">
+      <main
+        id="main"
+        tabIndex={-1}
+        className="mx-auto w-full max-w-3xl flex-1 px-5 pt-6 pb-28 outline-none md:pb-12"
+      >
         {children}
       </main>
 

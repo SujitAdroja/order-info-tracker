@@ -8,6 +8,8 @@ import {
 import { InstallPrompt } from "@/components/pwa/install-prompt";
 import { PushSettings } from "@/components/pwa/push-settings";
 import { LogoutButton } from "@/components/settings/logout-button";
+import { RegenerateAddressButton } from "@/components/settings/regenerate-address-button";
+import { YourData } from "@/components/settings/your-data";
 import { ReminderSettingsForm } from "@/components/settings/reminder-settings-form";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -45,7 +47,10 @@ async function SettingsContent() {
 
   return (
     <>
-      <ForwardingAddressCard address={address} />
+      <ForwardingAddressCard
+        address={address}
+        footer={<RegenerateAddressButton />}
+      />
 
       <Card>
         <CardHeader>
@@ -76,7 +81,7 @@ async function SettingsContent() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Reminders</CardTitle>
+          <CardTitle>Reminders &amp; preferences</CardTitle>
         </CardHeader>
         <CardContent>
           <ReminderSettingsForm
@@ -84,6 +89,7 @@ async function SettingsContent() {
               reminderHour: user.reminderHour,
               timezone: user.timezone,
               emailRemindersEnabled: user.emailRemindersEnabled,
+              defaultCurrency: user.defaultCurrency,
             }}
           />
         </CardContent>
@@ -141,6 +147,15 @@ async function SettingsContent() {
           </CardContent>
         </Card>
       )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Your data</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <YourData email={user.email} />
+        </CardContent>
+      </Card>
 
       <LogoutButton />
     </>

@@ -104,6 +104,18 @@ export function gmailVerification(to: string, code: string) {
   });
 }
 
+/** Newer Gmail confirmation: no code, only a link (the token is made up). */
+export function gmailVerificationLink(to: string, token: string) {
+  return base(to, {
+    From: "forwarding-noreply@google.com",
+    FromFull: { Email: "forwarding-noreply@google.com", Name: "Gmail Team" },
+    Subject:
+      "(Gmail Forwarding Confirmation - Receive Mail from me@gmail.example",
+    TextBody: `me@gmail.example has requested to automatically forward mail to your email address ${to}.\n\nTo allow me@gmail.example to automatically forward mail to your address, please click the link below to confirm the request:\n\nhttps://mail.google.com/mail/vf-%5B${token}%5D-x\n\nTo cancel:\nhttps://mail.google.com/mail/uf-%5B${token}%5D-x`,
+    HtmlBody: null,
+  });
+}
+
 export function newsletter(to: string) {
   return base(to, {
     From: "deals@amazon.in",
@@ -111,5 +123,61 @@ export function newsletter(to: string) {
     Subject: "Big sale starts now – 50% off",
     TextBody: "Shop our biggest sale. Unsubscribe from these emails anytime.",
     HtmlBody: null,
+  });
+}
+
+const AUTO_FORWARDED = (to: string) => [
+  { Name: "X-Forwarded-For", Value: `me@gmail.example ${to}` },
+];
+
+/** Shaped like a real Flipkart "order placed" email (anonymized). */
+export function flipkartPlaced(to: string, orderId: string) {
+  return base(to, {
+    From: "noreply@rmt.flipkart.com",
+    FromFull: { Email: "noreply@rmt.flipkart.com", Name: "Flipkart" },
+    Subject:
+      "Your Order for PUMA Men Royalcat Comf... has been successfully placed",
+    Date: "Tue, 03 Mar 2026 10:15:00 +0530",
+    Headers: AUTO_FORWARDED(to),
+    TextBody: "",
+    HtmlBody: `<div><p>Order Placed</p>
+<p>Your order has been successfully placed.</p>
+<p>Order placed on Mar 3, 2026</p>
+<p>Order ID ${orderId}</p>
+<p>Delivery by Thu, Mar 5, 2026</p>
+<p>Amount Paid₨. 1332</p>
+<img src="https://example.com/p.jpg" alt="PUMA Men Royalcat Comfort Slides">
+<p>PUMA Men Royalcat Comfort Slides</p><p>Qty: 1</p></div>`,
+  });
+}
+
+/** A shipping update that names the item but carries no order number. */
+export function flipkartShippedNoId(to: string) {
+  return base(to, {
+    From: "noreply@rmt.flipkart.com",
+    FromFull: { Email: "noreply@rmt.flipkart.com", Name: "Flipkart" },
+    Subject: "Your item has been shipped",
+    Date: "Wed, 04 Mar 2026 09:00:00 +0530",
+    Headers: AUTO_FORWARDED(to),
+    TextBody: "",
+    HtmlBody: `<div><p>Your item has been shipped and will be delivered soon.</p>
+<img src="https://example.com/p.jpg" alt="PUMA Men Royalcat Comfort Slides">
+<p>PUMA Men Royalcat Comf...</p></div>`,
+  });
+}
+
+/** Shaped like Amazon.in's shipped email: the order number sits behind U+202B. */
+export function amazonShippedReal(to: string, orderId: string) {
+  return base(to, {
+    From: "shipment-tracking@amazon.in",
+    FromFull: { Email: "shipment-tracking@amazon.in", Name: "Amazon.in" },
+    Subject: "Shipped: “Acme Black RFID...”",
+    Date: "Wed, 04 Mar 2026 09:00:00 +0530",
+    Headers: AUTO_FORWARDED(to),
+    TextBody: "",
+    HtmlBody: `<div><p>Your package was shipped!</p><p>Arriving tomorrow</p>
+<img src="https://example.com/a.jpg" alt="Acme Black RFID Blocking Aluminium Card Holder">
+<p>Acme Black RFID Blocking Al...</p><p>Quantity: 1</p>
+<p>Total ₹168.00</p><p>Order # ‫${orderId}</p></div>`,
   });
 }

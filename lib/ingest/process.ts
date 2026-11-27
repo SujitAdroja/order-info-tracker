@@ -8,7 +8,7 @@ import { env, llmEnabled } from "@/lib/env";
 import { classifyEmail, isOutForDelivery } from "@/lib/ingest/classify";
 import { genericExtract } from "@/lib/ingest/generic-extract";
 import {
-  extractGmailCode,
+  extractGmailConfirmation,
   isGmailVerification,
 } from "@/lib/ingest/gmail-verification";
 import {
@@ -16,13 +16,14 @@ import {
   htmlToText,
   looksImageOnly,
   normalizeText,
+  stripInvisible,
 } from "@/lib/ingest/html-to-text";
 import {
   anthropicModelCall,
   llmExtract,
   type ModelCall,
 } from "@/lib/ingest/llm";
-import type { ReviewReason } from "@/lib/ingest/merge";
+import { LOW_CONFIDENCE, type ReviewReason } from "@/lib/ingest/merge";
 import { checkOrderDateBounds } from "@/lib/purchases/input";
 import { pdfToText } from "@/lib/ingest/pdf";
 import { isAutoForwarded } from "@/lib/ingest/postmark";
@@ -265,14 +266,15 @@ export async function processInboundEmail(
     // Step 2: unwrap forwards.
     const original = unwrapForward({
       from: raw.from,
-      subject: raw.subject,
+      subject: stripInvisible(raw.subject),
       date: raw.date,
       body: bodyText,
     });
 
     // Step 1: Gmail forwarding verification (EC-ING-19). Never creates a purchase.
     if (isGmailVerification(original.fromAddress)) {
-      const code = extractGmailCode(raw.subject, bodyText);
+      // A code (older emails) or Gmail's confirmation link (newer ones).
+      const code = extractGmailConfirmation(raw.subject, bodyText);
       if (code) {
         await db
           .update(users)
@@ -421,8 +423,15 @@ export async function processInboundEmail(
           emailDate: original.date,
           storeName: store?.name ?? null,
           defaultCurrency: currencyFallback,
+          subject: original.subject,
         }),
       ];
+      // A complete read (order number, date and items) doesn't need the
+      // "automatic reading isn't available" review just because the LLM is off.
+      if (orders[0].confidence >= LOW_CONFIDENCE) {
+        const i = extraReasons.indexOf("llm_unavailable");
+        if (i !== -1) extraReasons.splice(i, 1);
+      }
     }
 
     // Steps 7–9: validate, upsert, recompute.

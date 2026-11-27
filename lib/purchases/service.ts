@@ -597,7 +597,10 @@ export async function recomputePurchase(
   );
   const keep = opts.clearParseReasons
     ? []
-    : [...p.reviewReasons, ...(opts.addReasons ?? [])];
+    : [...p.reviewReasons, ...(opts.addReasons ?? [])].filter(
+        // A later email (e.g. shipped) may have filled in the items.
+        (r) => !(r === "no_items" && p.items.length > 0),
+      );
 
   for (const [i, item] of p.items.entries()) {
     const c = result.items[i];

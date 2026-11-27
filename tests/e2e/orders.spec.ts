@@ -9,6 +9,9 @@ import { E2E_SECRETS } from "../../playwright.config";
 import {
   deliveredNotice,
   orderConfirmation,
+  amazonShippedReal,
+  flipkartPlaced,
+  flipkartShippedNoId,
   shippedNotice,
 } from "./inbound-fixtures";
 import { signUp } from "./helpers";
@@ -133,4 +136,63 @@ test("emails move an order through the stages", async ({ page, request }) => {
   await expect(page.getByTestId("order-eta")).toHaveText(
     "Delivered 5 Mar 2026.",
   );
+});
+
+test("status emails update the same order, even without an order number", async ({
+  page,
+  request,
+}) => {
+  test.skip(
+    test.info().project.name === "mobile-chrome",
+    "pipeline runs once (desktop)",
+  );
+  await signUp(page);
+  await page.goto("/settings");
+  const to = (await page
+    .getByTestId("forwarding-address")
+    .textContent())!.trim();
+
+  // A complete read: order number, date, item (fashion → Flipkart's 10 days).
+  await post(request, flipkartPlaced(to, `OD${Date.now()}01`));
+  const flipkart = page
+    .getByTestId("purchase-card")
+    .filter({ hasText: "PUMA Men Royalcat Comfort Slides" });
+  await expect(async () => {
+    await page.goto("/dashboard?tab=orders");
+    await expect(flipkart).toHaveCount(1);
+  }).toPass({ timeout: 30_000, intervals: [500, 1000, 2000] });
+  // Nothing to review: no API key needed for a complete read.
+  await page.goto("/dashboard?tab=review");
+  await expect(page.getByTestId("purchase-card")).toHaveCount(0);
+
+  // Shipped, no order number: matched by store + item name, not a new order.
+  await post(request, flipkartShippedNoId(to));
+  await expect(async () => {
+    await page.goto("/dashboard?tab=orders");
+    await expect(flipkart.getByTestId("order-stage")).toHaveAttribute(
+      "data-stage",
+      "shipped",
+    );
+  }).toPass({ timeout: 30_000, intervals: [500, 1000, 2000] });
+  await expect(page.getByTestId("purchase-card")).toHaveCount(1);
+
+  // Amazon: the shipped email's order number is wrapped in a direction mark.
+  const amazonId = `405-${String(Date.now()).slice(-7)}-1234567`;
+  await post(request, orderConfirmation(to, amazonId));
+  await expect(async () => {
+    await page.goto("/dashboard?tab=orders");
+    await expect(page.getByTestId("purchase-card")).toHaveCount(2);
+  }).toPass({ timeout: 30_000, intervals: [500, 1000, 2000] });
+  await post(request, amazonShippedReal(to, amazonId));
+  const amazon = page
+    .getByTestId("purchase-card")
+    .filter({ hasText: "Amazon.in" });
+  await expect(async () => {
+    await page.goto("/dashboard?tab=orders");
+    await expect(amazon.getByTestId("order-stage")).toHaveAttribute(
+      "data-stage",
+      "shipped",
+    );
+  }).toPass({ timeout: 30_000, intervals: [500, 1000, 2000] });
+  await expect(page.getByTestId("purchase-card")).toHaveCount(2);
 });

@@ -10,6 +10,7 @@ import {
   cancellation,
   deliveredNotice,
   gmailVerification,
+  gmailVerificationLink,
   newsletter,
   orderConfirmation,
 } from "./inbound-fixtures";
@@ -181,6 +182,14 @@ test("Gmail verification code shows in onboarding and creates no purchase", asyn
   await expect(page.getByTestId("gmail-code")).toHaveText("123456789", {
     timeout: 45_000, // first hit compiles the polling route on a cold dev server
   });
+
+  // Newer Gmail emails carry only a link: it replaces the code as a button.
+  await post(request, gmailVerificationLink(to, "fakeToken123"));
+  await expect(page.getByTestId("gmail-confirm-link")).toHaveAttribute(
+    "href",
+    "https://mail.google.com/mail/vf-%5BfakeToken123%5D-x",
+    { timeout: 15_000 },
+  );
 
   await post(request, newsletter(to)); // EC-ING-10: not a purchase
   await page.waitForTimeout(1500);

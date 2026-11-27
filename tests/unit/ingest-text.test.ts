@@ -3,6 +3,10 @@ import { decrypt, encrypt, safeEqual, sha256Hex } from "@/lib/crypto";
 import { classifyEmail, isOutForDelivery } from "@/lib/ingest/classify";
 import {
   extractGmailCode,
+  extractGmailConfirmation,
+  extractGmailConfirmUrl,
+  isGmailConfirmUrl,
+  pendingGmailConfirmation,
   isGmailVerification,
 } from "@/lib/ingest/gmail-verification";
 import { capText, htmlToText, looksImageOnly } from "@/lib/ingest/html-to-text";
@@ -333,5 +337,71 @@ describe("classify: delivery promises vs deliveries (order tracking)", () => {
     expect(isOutForDelivery("Your order has shipped", "Arriving Friday")).toBe(
       false,
     );
+  });
+});
+
+describe("Gmail confirmation link (newer emails have no code)", () => {
+  // Shape of Gmail's Nov 2026 email; the token is made up.
+  const confirm =
+    "https://mail.google.com/mail/vf-%5BANGjdJ-fakeToken_123%5D-AbC-dEf9";
+  const cancel =
+    "https://mail.google.com/mail/uf-%5BANGjdJ-fakeCancel_456%5D-AbC-dEf9";
+  const subject =
+    "(Gmail Forwarding Confirmation - Receive Mail from me@gmail.com";
+  const body = `me@gmail.com has requested to automatically forward mail to
+your email
+address u-abcdefgh@in.example.
+
+To allow me@gmail.com to automatically forward mail to your address,
+please click the link below to confirm the request:
+
+${confirm}
+
+If you accidentally clicked the link, click this link to cancel this
+verification:
+${cancel}
+`;
+
+  it("finds the confirm link, never the cancel link", () => {
+    expect(extractGmailCode(subject, body)).toBeNull();
+    expect(extractGmailConfirmUrl(body)).toBe(confirm);
+    expect(extractGmailConfirmation(subject, body)).toBe(confirm);
+  });
+
+  it("still prefers the code when an email has one", () => {
+    expect(
+      extractGmailConfirmation(
+        "(#123456789) Gmail Forwarding Confirmation",
+        `Confirmation code: 123456789\n${confirm}`,
+      ),
+    ).toBe("123456789");
+  });
+
+  it("only accepts Gmail's own confirmation page", () => {
+    expect(isGmailConfirmUrl(confirm)).toBe(true);
+    expect(isGmailConfirmUrl(cancel)).toBe(false);
+    expect(isGmailConfirmUrl("https://evil.example/mail/vf-x")).toBe(false);
+    expect(
+      isGmailConfirmUrl("https://mail.google.com.evil.example/mail/vf-x"),
+    ).toBe(false);
+    expect(isGmailConfirmUrl(`${confirm}"><script>`)).toBe(false);
+    expect(
+      extractGmailConfirmUrl("click https://evil.example/mail/vf-abc"),
+    ).toBeNull();
+  });
+
+  it("splits the stored value into a code or a link", () => {
+    expect(pendingGmailConfirmation(confirm)).toEqual({
+      code: null,
+      confirmUrl: confirm,
+    });
+    expect(pendingGmailConfirmation("123456789")).toEqual({
+      code: "123456789",
+      confirmUrl: null,
+    });
+    expect(pendingGmailConfirmation(null)).toEqual({
+      code: null,
+      confirmUrl: null,
+    });
   });
 });

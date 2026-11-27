@@ -88,7 +88,7 @@ export function parseAmount(raw: string): number | null {
 }
 
 export function currencyFromSymbol(raw: string): string | null {
-  if (/₹|\bRs\.?|\bINR\b/i.test(raw)) return "INR";
+  if (/₹|₨|\bRs\.?|\bINR\b/i.test(raw)) return "INR";
   if (/\bUSD\b|US\$/i.test(raw)) return "USD";
   if (/€|\bEUR\b/.test(raw)) return "EUR";
   if (/£|\bGBP\b/.test(raw)) return "GBP";

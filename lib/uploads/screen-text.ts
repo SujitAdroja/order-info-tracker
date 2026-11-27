@@ -1,6 +1,8 @@
 import { addDaysISO, type ISODate } from "@/lib/dates";
-import { GENERIC_MAX_CONFIDENCE } from "@/lib/ingest/generic-extract";
 import type { ParsedOrder } from "@/lib/ingest/types";
+
+/** OCR reads are always checked on the review screen, so they stay low. */
+const OCR_MAX_CONFIDENCE = 0.4;
 
 /**
  * Extra rules for text read off a screenshot with OCR (no API key). Shopping
@@ -136,9 +138,6 @@ export function enrichFromScreenText(
       found++;
     }
   }
-  out.confidence = Math.min(
-    GENERIC_MAX_CONFIDENCE,
-    out.confidence + found * 0.1,
-  );
+  out.confidence = Math.min(OCR_MAX_CONFIDENCE, out.confidence + found * 0.1);
   return out;
 }

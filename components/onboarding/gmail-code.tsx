@@ -1,12 +1,22 @@
 "use client";
 
-import { CheckCircle2Icon, LoaderIcon } from "lucide-react";
+import { CheckCircle2Icon, ExternalLinkIcon, LoaderIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { CopyButton } from "@/components/copy-button";
+import { buttonVariants } from "@/components/ui/button";
 
-type State = { code: string | null; verified: boolean };
+type State = {
+  /** Older Gmail emails: a code to type into Gmail. */
+  code: string | null;
+  /** Newer Gmail emails: Gmail's own confirmation page, opened by the user. */
+  confirmUrl: string | null;
+  verified: boolean;
+};
 
-/** F2 step 2: shows the Gmail confirmation code as soon as it arrives (3 s polling). */
+/**
+ * F2 step 2: shows Gmail's confirmation (a link to tap, or a code to type) as
+ * soon as it arrives (3 s polling).
+ */
 export function GmailCode({ initial }: { initial: State }) {
   const [state, setState] = useState(initial);
 
@@ -45,6 +55,34 @@ export function GmailCode({ initial }: { initial: State }) {
     );
   }
 
+  if (state.confirmUrl) {
+    return (
+      <div
+        role="status"
+        className="grid gap-3 rounded-lg border bg-muted/40 p-4"
+      >
+        <span className="text-sm">
+          Gmail&apos;s confirmation arrived. Open it while signed in to the
+          Gmail account you&apos;re forwarding from, and Gmail confirms right
+          away.
+        </span>
+        <a
+          href={state.confirmUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          data-testid="gmail-confirm-link"
+          className={buttonVariants({ className: "justify-self-start" })}
+        >
+          Confirm forwarding in Gmail
+          <ExternalLinkIcon aria-hidden />
+        </a>
+        <span className="text-xs text-muted-foreground">
+          This opens Gmail&apos;s own page. We never open it for you.
+        </span>
+      </div>
+    );
+  }
+
   if (state.code) {
     return (
       <div
@@ -78,7 +116,7 @@ export function GmailCode({ initial }: { initial: State }) {
       className="flex items-center gap-2 rounded-lg border border-dashed px-4 py-3 text-sm text-muted-foreground"
     >
       <LoaderIcon aria-hidden className="size-4 animate-spin" />
-      Waiting for Gmail&apos;s confirmation email… The code will appear here.
+      Waiting for Gmail&apos;s confirmation email… It will appear here.
     </p>
   );
 }

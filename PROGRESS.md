@@ -370,4 +370,25 @@ desktop).
   updates or is reinstalled.
 - Real Claude vision calls (no API key yet); covered by mocked unit tests.
 
+## Fewer reviews, Gmail setup fixes, new landing page (2026-11-27)
+
+- **Reading emails without an API key** (`lib/ingest/generic-extract.ts`): item names from product
+  photo captions (Amazon, Flipkart), "Name × 1" lines (Shopify stores) or the subject; first
+  non-zero total; "Delivery by" / "Arriving tomorrow"; a cautious category guess from clear words.
+  A complete read (order number + date + items) scores 0.8, so it no longer lands in "Needs review"
+  just because the LLM is off.
+- **Invisible characters stripped** (`stripInvisible`): Amazon wraps order numbers in U+202B, which
+  hid them, so shipped/delivered emails created a second purchase.
+- **Status emails match by item** (`lib/ingest/upsert.ts`): a shipped/delivered/cancel/return
+  email without a known order number updates the same store's recent order with the same item.
+- **Gmail forwarding confirmation** now arrives as a link, not a code: the setup page shows a
+  "Confirm forwarding in Gmail" button (only `mail.google.com/mail/vf-…` links are accepted).
+- **Gmail filter** shared in `lib/gmail-filter.ts`; adds Meesho, Shopify stores (`shopifyemail.com`),
+  "dispatched", "delivery", "return". Setup says to keep Gmail's Forwarding on "Disable forwarding".
+- **Landing page** rebuilt: animated order → reminder hero, store strip, auto-forward setup,
+  install steps per phone, FAQ. CSS modules don't work here (the Tailwind Turbopack rule turns
+  `.module.css` into plain CSS), so it uses `app/(marketing)/landing.css` with `lp-` classes.
+- **Still asks for the return window** for Amazon.in/.com, Myntra, AJIO and Croma: their policies
+  aren't verified yet (pages were unreadable on 2026-11-25).
+
 ## Next: Phase 7 — Launch

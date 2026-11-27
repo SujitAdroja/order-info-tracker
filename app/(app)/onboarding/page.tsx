@@ -12,14 +12,12 @@ import { InstallPrompt } from "@/components/pwa/install-prompt";
 import { buttonVariants } from "@/components/ui/button";
 import { getDb } from "@/lib/db";
 import { users } from "@/lib/db/schema";
+import { GMAIL_FILTER } from "@/lib/gmail-filter";
+import { pendingGmailConfirmation } from "@/lib/ingest/gmail-verification";
 import { getCurrentUser } from "@/lib/session";
 import { ensureForwardingAddress } from "@/lib/users";
 
 export const metadata: Metadata = { title: "Set up forwarding" };
-
-/** F2 step 3: suggested Gmail filter for order emails. */
-const GMAIL_FILTER =
-  "from:(amazon.in OR flipkart.com OR myntra.com OR ajio.com OR nykaa.com OR croma.com OR amazon.com OR apple.com OR bestbuy.com OR ikea.com) subject:(order OR invoice OR delivered OR shipped OR cancelled OR refund)";
 
 export default function OnboardingPage() {
   return (
@@ -60,8 +58,9 @@ export default function OnboardingPage() {
             KeepTrack address from step 1.
           </li>
           <li>
-            Gmail sends us a confirmation email. Its code shows up below within
-            a few seconds:
+            Gmail sends us a confirmation email. It shows up below within a few
+            seconds. Tap <strong>Confirm forwarding in Gmail</strong> (or, if
+            you see a code, type it into Gmail and click Verify):
             <div className="mt-3">
               <Suspense fallback={null}>
                 <OnboardingGmailCode />
@@ -69,10 +68,17 @@ export default function OnboardingPage() {
             </div>
           </li>
           <li>
-            Back in Gmail, create a filter (search box →{" "}
-            <strong>Show search options</strong> →{" "}
-            <strong>Create filter</strong>) with this search, and choose{" "}
-            <strong>Forward it to</strong> your KeepTrack address:
+            Leave Gmail&apos;s <strong>Forwarding</strong> setting on{" "}
+            <strong>Disable forwarding</strong>. &ldquo;Forward a copy of
+            incoming mail&rdquo; would send us every email you get; the filter
+            below sends only your orders.
+          </li>
+          <li>
+            Create a filter: click <strong>Show search options</strong> at the
+            end of Gmail&apos;s search box, paste this into{" "}
+            <strong>Has the words</strong>, click <strong>Create filter</strong>
+            , then tick <strong>Forward it to</strong> and pick your KeepTrack
+            address:
             <div className="mt-3 grid gap-2 rounded-lg border bg-muted/40 p-3">
               <code className="font-mono text-xs break-all">
                 {GMAIL_FILTER}
@@ -141,7 +147,7 @@ async function OnboardingGmailCode() {
   return (
     <GmailCode
       initial={{
-        code: live ? row!.pendingGmailCode : null,
+        ...pendingGmailConfirmation(live ? row!.pendingGmailCode : null),
         verified: row?.gmailForwardingVerified ?? false,
       }}
     />

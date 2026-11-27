@@ -4,6 +4,7 @@ import type { Db } from "@/lib/db";
 import { purchaseItems, purchases } from "@/lib/db/schema";
 import { diffDaysISO, type ISODate } from "@/lib/dates";
 import {
+  itemNamesMatch,
   looselyMatches,
   planMerge,
   type ExistingPurchase,
@@ -46,28 +47,58 @@ async function findExisting(
   } as const;
 
   if (order.external_order_id) {
-    return (
-      (await tx.query.purchases.findFirst({
-        where: and(
-          base,
-          eq(purchases.externalOrderId, order.external_order_id),
-        ),
-        with: withItems,
-      })) ?? null
-    );
+    const byId = await tx.query.purchases.findFirst({
+      where: and(base, eq(purchases.externalOrderId, order.external_order_id)),
+      with: withItems,
+    });
+    if (byId) return byId;
+  } else if (order.order_date && order.total_amount !== null) {
+    // No order id: same store, order date ±1 day, same total.
+    const candidates = await tx.query.purchases.findMany({
+      where: and(
+        base,
+        sql`${purchases.orderDate} between (${order.order_date}::date - 1) and (${order.order_date}::date + 1)`,
+      ),
+      with: withItems,
+      limit: 10,
+    });
+    const loose = candidates.find((c) => looselyMatches(c, order, diffDaysISO));
+    if (loose) return loose;
   }
-  // No order id: same store, order date ±1 day, same total.
-  if (!order.order_date || order.total_amount === null) return null;
-  const candidates = await tx.query.purchases.findMany({
-    where: and(
-      base,
-      sql`${purchases.orderDate} between (${order.order_date}::date - 1) and (${order.order_date}::date + 1)`,
-    ),
+
+  // A shipping/delivery/cancel/return email we couldn't tie to an order by
+  // number: the same store's recent order with the same item (an order we
+  // know by a *different* number is a different order).
+  if (!STATUS_TYPES.has(order.email_type) || !order.items.length) return null;
+  const recent = await tx.query.purchases.findMany({
+    where: and(base, sql`${purchases.createdAt} > now() - interval '120 days'`),
     with: withItems,
-    limit: 10,
+    orderBy: (p, { desc }) => desc(p.createdAt),
+    limit: 25,
   });
-  return candidates.find((c) => looselyMatches(c, order, diffDaysISO)) ?? null;
+  const sameItem = recent.filter(
+    (c) =>
+      !(order.external_order_id && c.externalOrderId) &&
+      c.items.some((i) =>
+        order.items.some((o) => itemNamesMatch(i.name, o.name)),
+      ),
+  );
+  if (sameItem.length <= 1) return sameItem[0] ?? null;
+  // Several orders of the same item: only the one still on its way.
+  const inTransit = sameItem.filter(
+    (c) => c.deliveryDate === null || c.deliveryDateEstimated,
+  );
+  return inTransit.length === 1 ? inTransit[0] : null;
 }
+
+/** Emails that change an existing order rather than describe a new one. */
+const STATUS_TYPES = new Set([
+  "shipped",
+  "delivered",
+  "cancelled",
+  "refund",
+  "return_initiated",
+]);
 
 export async function applyOrder(
   db: Db,

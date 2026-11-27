@@ -1,0 +1,293 @@
+/*
+ * Landing page motion. One orchestrated moment (the hero phone), a slow
+ * store strip, and a reminder timeline that fills in as it scrolls into
+ * view. Everything is static for people who ask for reduced motion.
+ */
+
+.lp-phone {
+  --teal: #14665a;
+  --amber: #b26a00;
+  --amber-wash: #fdf1dc;
+  --loop: 12s;
+}
+
+/* ---------- Hero phone: an order moving to "Return by" ---------- */
+
+.lp-track {
+  transform-origin: left center;
+  transform: scaleX(1);
+}
+
+.lp-dot {
+  background: var(--teal);
+  color: #fff;
+}
+
+.lp-chip,
+.lp-notice {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .lp-track {
+    animation: track var(--loop) ease-in-out infinite;
+  }
+  .lp-dotShipped {
+    animation: dotShipped var(--loop) ease-out infinite;
+  }
+  .lp-dotDelivered {
+    animation: dotDelivered var(--loop) ease-out infinite;
+  }
+  .lp-chip {
+    animation: chip var(--loop) ease-out infinite;
+  }
+  .lp-notice {
+    animation: notice var(--loop) cubic-bezier(0.2, 0.9, 0.3, 1.2) infinite;
+  }
+}
+
+@keyframes track {
+  0%,
+  6% {
+    transform: scaleX(0);
+  }
+  18%,
+  24% {
+    transform: scaleX(0.5);
+  }
+  36%,
+  92% {
+    transform: scaleX(1);
+  }
+  100% {
+    transform: scaleX(0);
+  }
+}
+
+@keyframes dotShipped {
+  0%,
+  17% {
+    background: var(--muted);
+    color: var(--muted-foreground);
+  }
+  19%,
+  92% {
+    background: var(--teal);
+    color: #fff;
+  }
+  100% {
+    background: var(--muted);
+    color: var(--muted-foreground);
+  }
+}
+
+@keyframes dotDelivered {
+  0%,
+  35% {
+    background: var(--muted);
+    color: var(--muted-foreground);
+  }
+  37%,
+  92% {
+    background: var(--teal);
+    color: #fff;
+  }
+  100% {
+    background: var(--muted);
+    color: var(--muted-foreground);
+  }
+}
+
+@keyframes chip {
+  0%,
+  42% {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  47%,
+  92% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes notice {
+  0%,
+  56% {
+    opacity: 0;
+    transform: translateY(-120%);
+  }
+  62%,
+  90% {
+    opacity: 1;
+    transform: none;
+  }
+  96%,
+  100% {
+    opacity: 0;
+    transform: translateY(-120%);
+  }
+}
+
+.lp-chipColor {
+  background: var(--amber-wash);
+  color: var(--amber);
+}
+
+/* ---------- Store strip ---------- */
+
+.lp-strip {
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    #000 8%,
+    #000 92%,
+    transparent
+  );
+}
+
+.lp-stripTrack {
+  display: flex;
+  width: max-content;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .lp-stripTrack {
+    animation: strip 45s linear infinite;
+  }
+  .lp-strip:hover .lp-stripTrack {
+    animation-play-state: paused;
+  }
+}
+
+@keyframes strip {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+/* Reduced motion: one static, wrapping row instead of a moving strip. */
+@media (prefers-reduced-motion: reduce) {
+  .lp-strip {
+    mask-image: none;
+  }
+  .lp-stripTrack {
+    flex-wrap: wrap;
+    width: auto;
+  }
+  .lp-stripCopy {
+    display: none;
+  }
+}
+
+/* ---------- Reminder timeline: fills in as it scrolls into view ---------- */
+
+.lp-fill {
+  transform-origin: left center;
+}
+
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .lp-fill {
+      animation: fill linear both;
+      animation-timeline: view();
+      animation-range: entry 10% cover 45%;
+    }
+    .lp-mark {
+      animation: mark linear both;
+      animation-timeline: view();
+    }
+    .lp-mark:nth-child(1) {
+      animation-range: entry 15% cover 25%;
+    }
+    .lp-mark:nth-child(2) {
+      animation-range: entry 25% cover 33%;
+    }
+    .lp-mark:nth-child(3) {
+      animation-range: entry 30% cover 39%;
+    }
+    .lp-mark:nth-child(4) {
+      animation-range: entry 35% cover 45%;
+    }
+  }
+}
+
+@keyframes fill {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes mark {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ---------- FAQ: the chevron turns when an answer opens ---------- */
+
+.lp-faq summary::-webkit-details-marker {
+  display: none;
+}
+
+.lp-chevron {
+  transition: transform 200ms ease;
+}
+
+.lp-faq[open] .lp-chevron {
+  transform: rotate(180deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lp-chevron {
+    transition: none;
+  }
+}
+
+/* ---------- Hero rings: a slow breathing pulse ---------- */
+
+@media (prefers-reduced-motion: no-preference) {
+  .lp-ring {
+    animation: ring 6s ease-in-out infinite;
+  }
+}
+
+@keyframes ring {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.04);
+  }
+}
+
+/* ---------- Install cards: slide in when the platform changes ---------- */
+
+@media (prefers-reduced-motion: no-preference) {
+  .lp-card-in {
+    animation: card-in 420ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+}
+
+@keyframes card-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}

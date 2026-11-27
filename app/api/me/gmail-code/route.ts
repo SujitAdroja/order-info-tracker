@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { getDb } from "@/lib/db";
 import { users } from "@/lib/db/schema";
+import { pendingGmailConfirmation } from "@/lib/ingest/gmail-verification";
 
 /** F2: the pending Gmail forwarding confirmation code, polled by onboarding. */
 export async function GET() {
@@ -24,7 +25,7 @@ export async function GET() {
 
   return Response.json(
     {
-      code: live ? user!.pendingGmailCode : null,
+      ...pendingGmailConfirmation(live ? user!.pendingGmailCode : null),
       verified: user?.gmailForwardingVerified ?? false,
     },
     { headers: { "Cache-Control": "no-store" } },

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   formatForwardingAddress,
+  forwardingVCard,
   generateLocalPart,
   LOCAL_PART_ALPHABET,
   LOCAL_PART_PATTERN,
@@ -35,5 +36,22 @@ describe("formatForwardingAddress", () => {
     expect(formatForwardingAddress("u-7k2m9xqa", "In.KeepTrack.app")).toBe(
       "u-7k2m9xqa@in.keeptrack.app",
     );
+  });
+});
+
+describe("forwardingVCard (Add to contacts)", () => {
+  const card = forwardingVCard("u-7k2m9xqa@in.keeptrack.app");
+
+  it("is a vCard 3.0 named KeepTrack Orders with the address", () => {
+    const lines = card.split("\r\n");
+    expect(lines[0]).toBe("BEGIN:VCARD");
+    expect(lines).toContain("VERSION:3.0");
+    expect(lines).toContain("FN:KeepTrack Orders");
+    expect(lines).toContain("EMAIL;TYPE=INTERNET:u-7k2m9xqa@in.keeptrack.app");
+    expect(lines.at(-2)).toBe("END:VCARD");
+  });
+
+  it("uses CRLF line endings only", () => {
+    expect(card.replaceAll("\r\n", "")).not.toMatch(/[\r\n]/);
   });
 });

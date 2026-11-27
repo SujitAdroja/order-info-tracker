@@ -23,3 +23,24 @@ export function generateLocalPart(rand: (max: number) => number = randomInt) {
 export function formatForwardingAddress(localPart: string, domain: string) {
   return `${localPart}@${domain.toLowerCase()}`;
 }
+
+export const CONTACT_NAME = "KeepTrack Orders";
+export const CONTACT_FILENAME = "KeepTrack.vcf";
+
+/**
+ * A vCard 3.0 contact for the forwarding address. Saved once, it lets the
+ * mail app autocomplete the address when the user types "Keep" in To.
+ * vCard lines end in CRLF; the address itself never holds , ; or \.
+ */
+export function forwardingVCard(address: string): string {
+  return [
+    "BEGIN:VCARD",
+    "VERSION:3.0",
+    "N:Orders;KeepTrack;;;",
+    `FN:${CONTACT_NAME}`,
+    `EMAIL;TYPE=INTERNET:${address}`,
+    "NOTE:Forward order confirmations and invoices here to track returns.",
+    "END:VCARD",
+    "",
+  ].join("\r\n");
+}

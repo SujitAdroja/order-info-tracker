@@ -35,7 +35,8 @@ export function RegenerateAddressButton() {
           <AlertDialogDescription>
             Do this if your address leaked or you get emails you didn&apos;t
             forward. Your current address keeps working for 7 days, then stops.
-            Afterwards, update your Gmail filter with the new address.
+            Afterwards, update your Gmail filter with the new address, and tap
+            &ldquo;Add to contacts&rdquo; again to replace the saved contact.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
@@ -48,7 +49,7 @@ export function RegenerateAddressButton() {
                 if (res.ok) {
                   setOpen(false);
                   toast.success(
-                    "New address ready. Update your Gmail filter to use it.",
+                    "New address ready. Update your Gmail filter and saved contact.",
                   );
                 } else {
                   toast.error(res.error);
